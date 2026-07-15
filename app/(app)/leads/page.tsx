@@ -24,7 +24,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const params = await searchParams
 
   // Les prospects "RDV pris" sont gérés dans Show-up
-  let all = getLeads().filter(l => l.statut !== 'RDV pris')
+  let all = (await getLeads()).filter(l => l.statut !== 'RDV pris')
 
   if (params.statut && params.statut !== 'Tous') {
     all = all.filter(l => l.statut === params.statut)

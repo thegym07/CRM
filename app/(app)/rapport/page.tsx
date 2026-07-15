@@ -11,9 +11,9 @@ export default async function RapportPage({ searchParams }: { searchParams: Prom
   const today = new Date().toISOString().split('T')[0]
   const selectedDate = params.date && params.date <= today ? params.date : today
 
-  const reportDuJour = getReport(selectedDate)
+  const reportDuJour = await getReport(selectedDate)
 
-  const allReports = getReports()
+  const allReports = (await getReports())
     .filter(r => r.date <= today)
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 30)

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   }
 
   const nom = [body.first_name, body.last_name].filter(Boolean).join(' ').trim() || 'Inconnu'
-  createLead({ nom, telephone: body.phone_number ?? body.phone ?? null, email: body.email ?? null, source: 'Meta Ads', statut: 'Nouveau prospect' })
+  await createLead({ nom, telephone: body.phone_number ?? body.phone ?? null, email: body.email ?? null, source: 'Meta Ads', statut: 'Nouveau prospect' })
 
   return NextResponse.json({ success: true, message: 'Lead créé' })
 }

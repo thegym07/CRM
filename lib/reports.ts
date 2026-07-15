@@ -1,5 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
-import { join } from 'path'
+import { supabase } from './supabaseServer'
 
 export type DailyReport = {
   date: string          // YYYY-MM-DD
@@ -9,21 +8,26 @@ export type DailyReport = {
   sms_envoyes: boolean
 }
 
-const DB_PATH = join(process.cwd(), 'data', 'reports.json')
+const TABLE = 'reports'
 
-export function getReports(): DailyReport[] {
-  if (!existsSync(DB_PATH)) return []
-  try { return JSON.parse(readFileSync(DB_PATH, 'utf-8')) } catch { return [] }
+export async function getReports(): Promise<DailyReport[]> {
+  const { data, error } = await supabase.from(TABLE).select('*').order('date', { ascending: false })
+  if (error) throw new Error(`getReports: ${error.message}`)
+  return (data ?? []) as DailyReport[]
 }
 
-export function getReport(date: string): DailyReport | null {
-  return getReports().find(r => r.date === date) ?? null
+export async function getReport(date: string): Promise<DailyReport | null> {
+  const { data, error } = await supabase.from(TABLE).select('*').eq('date', date).maybeSingle()
+  if (error) throw new Error(`getReport: ${error.message}`)
+  return (data as DailyReport) ?? null
 }
 
-export function upsertReport(data: DailyReport): DailyReport {
-  const reports = getReports()
-  const idx = reports.findIndex(r => r.date === data.date)
-  if (idx >= 0) { reports[idx] = data } else { reports.push(data) }
-  writeFileSync(DB_PATH, JSON.stringify(reports, null, 2))
-  return data
+export async function upsertReport(data: DailyReport): Promise<DailyReport> {
+  const { data: row, error } = await supabase
+    .from(TABLE)
+    .upsert(data, { onConflict: 'date' })
+    .select('*')
+    .single()
+  if (error) throw new Error(`upsertReport: ${error.message}`)
+  return row as DailyReport
 }
