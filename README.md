@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# THE GYM — CRM Prospects
 
-## Getting Started
+CRM interne pour THE GYM (Ardèche). Gestion des prospects, RDV, relances et leads Meta Ads.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router, TypeScript)
+- **Supabase** (PostgreSQL)
+- **Tailwind CSS** (dark mode, mobile-first)
+- **Vercel** (déploiement)
+
+---
+
+## Mise en production — étapes
+
+### 1. Créer un projet Supabase
+
+1. Aller sur [supabase.com](https://supabase.com) → New project
+2. Copier dans Settings > API :
+   - `URL du projet`
+   - `anon public key`
+   - `service_role key`
+3. Dans l'éditeur SQL de Supabase, exécuter le contenu de `supabase/schema.sql`
+
+### 2. Configurer les variables d'environnement
+
+```bash
+cp .env.local.example .env.local
+```
+
+Remplir `.env.local` avec tes valeurs Supabase et les identifiants de connexion.
+
+### 3. Installer les dépendances
+
+```bash
+npm install
+```
+
+### 4. Importer les données CSV existantes
+
+```bash
+npm run import-csv
+```
+
+Le script lit automatiquement `~/Downloads/Prospects THE GYM - Show-up.csv` et l'importe dans Supabase.
+
+### 5. Lancer en local
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 6. Déployer sur Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npx vercel
+```
 
-## Learn More
+Ou connecter le dépôt GitHub à Vercel et ajouter les variables d'environnement dans le dashboard Vercel.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Webhook Meta Lead Ads
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Pour recevoir les leads Facebook automatiquement :
 
-## Deploy on Vercel
+1. Dans Meta Business Manager, configurer un webhook vers :
+   ```
+   https://ton-domaine.vercel.app/api/leads/meta
+   ```
+2. Utiliser la valeur `WEBHOOK_SECRET` de `.env.local` comme token de vérification
+3. Champs à mapper : `first_name`, `last_name`, `phone_number`, `email`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Les leads arriveront automatiquement avec statut "Nouveau" et source "Meta Ads".
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Identifiants de connexion
+
+- URL : `https://ton-domaine.vercel.app`
+- Identifiant : valeur de `ADMIN_USERNAME` dans `.env.local`
+- Mot de passe : valeur de `ADMIN_PASSWORD` dans `.env.local`
+
+La session dure 30 jours. Un seul compte partagé pour toute l'équipe.
