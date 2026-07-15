@@ -4,11 +4,11 @@ let client: SupabaseClient | null = null
 
 function getClient(): SupabaseClient {
   if (client) return client
-  const url = process.env.SUPABASE_URL
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !serviceKey) {
     throw new Error(
-      'Variables Supabase manquantes : définis SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY dans .env.local (et dans Vercel).'
+      'Variables Supabase manquantes : définis NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY dans .env.local (et dans Vercel).'
     )
   }
   client = createClient(url, serviceKey, { auth: { persistSession: false } })

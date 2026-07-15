@@ -4,15 +4,17 @@
  * Prérequis : SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY dans .env.local + schéma SQL exécuté.
  */
 
-import 'dotenv/config'
+import { config } from 'dotenv'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { createClient } from '@supabase/supabase-js'
 
-const url = process.env.SUPABASE_URL
+config({ path: '.env.local' })
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 if (!url || !key) {
-  console.error('❌ SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY requis dans .env.local')
+  console.error('❌ NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY requis dans .env.local')
   process.exit(1)
 }
 
