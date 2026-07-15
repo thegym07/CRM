@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createLead, getLeads } from '@/lib/db'
 
 export async function GET() {
-  return NextResponse.json(getLeads())
+  return NextResponse.json(await getLeads())
 }
 
 export async function POST(request: NextRequest) {
@@ -10,6 +10,6 @@ export async function POST(request: NextRequest) {
   if (!data.nom?.trim()) {
     return NextResponse.json({ error: 'Le nom est obligatoire' }, { status: 400 })
   }
-  const lead = createLead(data)
+  const lead = await createLead(data)
   return NextResponse.json(lead, { status: 201 })
 }

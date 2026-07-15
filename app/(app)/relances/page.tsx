@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function RelancesPage() {
   const today = new Date().toISOString().split('T')[0]
-  const allLeads = getLeads()
+  const allLeads = await getLeads()
 
   // Relances classiques (date_relance <= aujourd'hui)
   const byDate = allLeads

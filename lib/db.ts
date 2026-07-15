@@ -1,79 +1,70 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
-import { join } from 'path'
-import { randomUUID } from 'crypto'
+import { supabase } from './supabaseServer'
 import type { Lead } from './supabase'
 
-const DB_PATH = join(process.cwd(), 'data', 'leads.json')
+const TABLE = 'leads'
 
-function readDB(): Lead[] {
-  if (!existsSync(DB_PATH)) {
-    mkdirSync(join(process.cwd(), 'data'), { recursive: true })
-    writeFileSync(DB_PATH, '[]')
-    return []
+// Colonnes autorisées en écriture (évite d'envoyer id/created_at par erreur)
+const WRITABLE: (keyof Lead)[] = [
+  'nom', 'telephone', 'email', 'source', 'date_rdv', 'activite',
+  'rdv_honore', 'resultat_rdv', 'statut', 'offre_souscrite', 'coach_assigne',
+  'date_relance', 'motif_relance', 'suivi_relance', 'notes', 'appels',
+]
+
+function pickWritable(data: Partial<Lead>): Partial<Lead> {
+  const out: Record<string, unknown> = {}
+  for (const key of WRITABLE) {
+    if (key in data) out[key] = data[key]
   }
-  try {
-    return JSON.parse(readFileSync(DB_PATH, 'utf-8'))
-  } catch {
-    return []
-  }
+  return out as Partial<Lead>
 }
 
-function writeDB(leads: Lead[]): void {
-  writeFileSync(DB_PATH, JSON.stringify(leads, null, 2))
+function normalize(row: Record<string, unknown>): Lead {
+  return { ...row, appels: (row.appels as string[]) ?? [] } as Lead
 }
 
-export function getLeads(): Lead[] {
-  return readDB().sort((a, b) =>
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
+export async function getLeads(): Promise<Lead[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(`getLeads: ${error.message}`)
+  return (data ?? []).map(normalize)
 }
 
-export function getLead(id: string): Lead | null {
-  return readDB().find(l => l.id === id) ?? null
+export async function getLead(id: string): Promise<Lead | null> {
+  const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).maybeSingle()
+  if (error) throw new Error(`getLead: ${error.message}`)
+  return data ? normalize(data) : null
 }
 
-export function createLead(data: Partial<Lead>): Lead {
-  const leads = readDB()
-  const now = new Date().toISOString()
-  const lead: Lead = {
-    id: randomUUID(),
-    nom: data.nom ?? '',
-    telephone: data.telephone ?? null,
-    email: data.email ?? null,
-    source: data.source ?? 'Autre',
-    date_rdv: data.date_rdv ?? null,
-    activite: data.activite ?? null,
-    rdv_honore: data.rdv_honore ?? null,
-    resultat_rdv: data.resultat_rdv ?? null,
+export async function createLead(data: Partial<Lead>): Promise<Lead> {
+  const insert = {
+    ...pickWritable(data),
     statut: data.statut ?? 'Nouveau prospect',
-    offre_souscrite: data.offre_souscrite ?? null,
-    coach_assigne: data.coach_assigne ?? null,
-    date_relance: data.date_relance ?? null,
-    motif_relance: data.motif_relance ?? null,
-    suivi_relance: data.suivi_relance ?? null,
-    notes: data.notes ?? null,
+    source: data.source ?? 'Autre',
     appels: data.appels ?? [],
-    created_at: now,
-    updated_at: now,
   }
-  leads.push(lead)
-  writeDB(leads)
-  return lead
+  const { data: row, error } = await supabase.from(TABLE).insert(insert).select('*').single()
+  if (error) throw new Error(`createLead: ${error.message}`)
+  return normalize(row)
 }
 
-export function updateLead(id: string, data: Partial<Lead>): Lead | null {
-  const leads = readDB()
-  const idx = leads.findIndex(l => l.id === id)
-  if (idx === -1) return null
-  leads[idx] = { ...leads[idx], ...data, id, updated_at: new Date().toISOString() }
-  writeDB(leads)
-  return leads[idx]
+export async function updateLead(id: string, data: Partial<Lead>): Promise<Lead | null> {
+  const { data: row, error } = await supabase
+    .from(TABLE)
+    .update(pickWritable(data))
+    .eq('id', id)
+    .select('*')
+    .maybeSingle()
+  if (error) throw new Error(`updateLead: ${error.message}`)
+  return row ? normalize(row) : null
 }
 
-export function deleteLead(id: string): boolean {
-  const leads = readDB()
-  const filtered = leads.filter(l => l.id !== id)
-  if (filtered.length === leads.length) return false
-  writeDB(filtered)
-  return true
+export async function deleteLead(id: string): Promise<boolean> {
+  const { error, count } = await supabase
+    .from(TABLE)
+    .delete({ count: 'exact' })
+    .eq('id', id)
+  if (error) throw new Error(`deleteLead: ${error.message}`)
+  return (count ?? 0) > 0
 }

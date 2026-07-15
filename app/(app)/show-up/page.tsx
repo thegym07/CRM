@@ -5,7 +5,7 @@ import ShowUpRow, { ShowUpCard } from './ShowUpRow'
 export const dynamic = 'force-dynamic'
 
 export default async function ShowUpPage() {
-  const leads = getLeads()
+  const leads = await getLeads()
 
   // Tous les prospects "RDV pris"
   const rdvLeads = leads.filter(l => l.statut === 'RDV pris')

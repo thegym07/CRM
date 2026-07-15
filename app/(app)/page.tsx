@@ -5,7 +5,7 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const all = getLeads()
+  const all = await getLeads()
   const total = all.length
   const nouveaux = all.filter(l => l.statut === 'Nouveau prospect').length
   const vendus = all.filter(l => l.statut === 'Vendu').length

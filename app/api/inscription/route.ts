@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     ? (body.activite as 'cours collectif' | 'plateau muscu' | 'coaching')
     : null
 
-  createLead({
+  await createLead({
     nom,
     telephone: body.telephone?.trim() || null,
     email: body.email?.trim() || null,
