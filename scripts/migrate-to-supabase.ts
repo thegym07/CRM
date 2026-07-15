@@ -7,9 +7,13 @@
 import { config } from 'dotenv'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
+import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 
 config({ path: '.env.local' })
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const validId = (id: unknown) => (typeof id === 'string' && UUID_RE.test(id) ? id : randomUUID())
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -28,7 +32,7 @@ async function main() {
   if (existsSync(leadsPath)) {
     const leads = JSON.parse(readFileSync(leadsPath, 'utf-8'))
     const rows = leads.map((l: Record<string, unknown>) => ({
-      id: l.id,
+      id: validId(l.id),
       nom: l.nom,
       telephone: l.telephone ?? null,
       email: l.email ?? null,
