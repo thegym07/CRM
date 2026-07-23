@@ -17,10 +17,10 @@ export default function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       title="Copier le numéro"
-      className={`ml-2 inline-flex items-center justify-center w-7 h-7 rounded text-sm font-bold transition-all ${
+      className={`ml-2 inline-flex items-center justify-center w-7 h-7 rounded-lg text-sm font-bold border transition-all ${
         copied
-          ? 'bg-green-500/20 text-green-400'
-          : 'bg-[#F5C800]/15 text-[#F5C800] hover:bg-[#F5C800]/30'
+          ? 'bg-green-500 text-white border-green-500'
+          : 'bg-white text-gray-600 border-gray-300 hover:bg-[#F5C800] hover:text-black hover:border-[#F5C800]'
       }`}
     >
       {copied ? '✓' : '⎘'}
