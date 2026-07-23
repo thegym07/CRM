@@ -2,6 +2,7 @@ import { getLeads } from '@/lib/db'
 import Link from 'next/link'
 import SuiviRelanceSelect from '@/components/SuiviRelanceSelect'
 import CallTracker from '@/components/CallTracker'
+import CopyButton from '@/components/CopyButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -108,18 +109,14 @@ function LeadCard({ lead, overdue }: { lead: Awaited<ReturnType<typeof getLeads>
             nom={lead.nom}
           />
           <CallTracker leadId={lead.id} appels={lead.appels ?? []} />
-          <div className="flex gap-2">
-            {lead.telephone && (
-              <a href={`tel:${lead.telephone}`} className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors border border-gray-200">
-                📞 Appeler
+          {lead.telephone && (
+            <div className="flex items-center gap-1 bg-gray-100 border border-gray-200 rounded-lg px-2.5 py-1.5">
+              <a href={`tel:${lead.telephone}`} className="text-xs font-mono text-gray-700 hover:text-[#F5C800]">
+                {lead.telephone}
               </a>
-            )}
-            {lead.email && (
-              <a href={`mailto:${lead.email}`} className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors border border-gray-200">
-                ✉ Email
-              </a>
-            )}
-          </div>
+              <CopyButton text={lead.telephone} />
+            </div>
+          )}
         </div>
       </div>
     </div>
