@@ -22,7 +22,7 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
   if (editing) {
     return (
       <div>
-        <h1 className="text-xl font-bold text-white mb-6">Modifier — {lead.nom}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Modifier — {lead.nom}</h1>
         <LeadForm lead={lead} mode="edit" />
       </div>
     )
@@ -32,18 +32,18 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
     <div>
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">{lead.nom}</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">
+          <h1 className="text-2xl font-bold text-gray-900">{lead.nom}</h1>
+          <p className="text-gray-500 text-sm mt-0.5">
             Ajouté le {new Date(lead.created_at).toLocaleDateString('fr-FR')}
           </p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setEditing(true)}
-            className="px-4 py-2 bg-white text-zinc-900 font-semibold text-sm rounded-xl hover:bg-zinc-200 transition-colors">
+            className="btn-primary text-sm">
             Modifier
           </button>
           <button onClick={handleDelete} disabled={deleting}
-            className="px-4 py-2 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm rounded-xl transition-colors">
+            className="px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 text-sm rounded-xl transition-colors">
             {deleting ? '…' : 'Supprimer'}
           </button>
         </div>
@@ -83,7 +83,7 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
         <Section title="Relance">
           <Row label="Date de relance">
             {lead.date_relance
-              ? <span className={new Date(lead.date_relance) <= new Date() ? 'text-red-400' : 'text-white'}>
+              ? <span className={new Date(lead.date_relance) <= new Date() ? 'text-red-500' : 'text-gray-900'}>
                   {new Date(lead.date_relance + 'T00:00:00').toLocaleDateString('fr-FR', { dateStyle: 'long' })}
                 </span>
               : <Empty />}
@@ -93,7 +93,7 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
 
         {lead.notes && (
           <Section title="Notes">
-            <p className="px-4 py-3 text-white text-sm whitespace-pre-wrap">{lead.notes}</p>
+            <p className="px-4 py-3 text-gray-900 text-sm whitespace-pre-wrap">{lead.notes}</p>
           </Section>
         )}
       </div>

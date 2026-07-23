@@ -21,8 +21,8 @@ export default async function ShowUpPage() {
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-3xl text-gray-900" style={{ fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.04em' }}>
-            Show-up
+          <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>
+            RDV / Show Up
           </h1>
           <p className="text-gray-500 text-xs mt-0.5">
             {total} RDV pris
@@ -62,7 +62,7 @@ function Section({ title, leads, warn }: {
   return (
     <div>
       <h2 className={`text-xs font-semibold uppercase tracking-widest mb-2 ${warn ? 'text-orange-500' : 'text-gray-500'}`}
-          style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+          style={{ fontFamily: 'Inter, sans-serif' }}>
         {title} — {leads.length}
       </h2>
 

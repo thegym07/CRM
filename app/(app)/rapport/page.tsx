@@ -26,7 +26,7 @@ export default async function RapportPage({ searchParams }: { searchParams: Prom
     <div className="p-4 md:p-6 max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-2">
-        <h1 className="text-4xl text-gray-900" style={{ fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.04em' }}>
+        <h1 className="text-4xl text-gray-900" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>
           Rapport journalier
         </h1>
       </div>
@@ -46,7 +46,7 @@ export default async function RapportPage({ searchParams }: { searchParams: Prom
       {allReports.length > 0 && (
         <section>
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3"
-              style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+              style={{ fontFamily: 'Inter, sans-serif' }}>
             Historique
           </h2>
           <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">

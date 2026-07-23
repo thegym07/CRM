@@ -41,7 +41,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-3xl text-gray-900" style={{ fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.04em' }}>
+          <h1 className="text-3xl text-gray-900" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>
             Prospects
           </h1>
           <p className="text-gray-500 text-xs mt-0.5">{filtered.length} prospect{filtered.length !== 1 ? 's' : ''}</p>

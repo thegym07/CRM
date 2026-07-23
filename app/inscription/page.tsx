@@ -40,7 +40,7 @@ export default function InscriptionPage() {
           <div className="flex justify-center mb-4">
             <Image src="/logo.png" alt="THE GYM" width={80} height={80} className="rounded-full" />
           </div>
-          <h1 className="text-3xl text-gray-900" style={{ fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.04em' }}>Merci !</h1>
+          <h1 className="text-3xl text-gray-900" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>Merci !</h1>
           <p className="text-gray-600 mt-2">Votre demande a bien été enregistrée. L’équipe THE GYM vous recontacte très vite.</p>
         </div>
       </div>
@@ -54,7 +54,7 @@ export default function InscriptionPage() {
           <div className="flex justify-center mb-4">
             <Image src="/logo.png" alt="THE GYM" width={88} height={88} className="rounded-full shadow-md" />
           </div>
-          <h1 className="text-3xl text-gray-900" style={{ fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.05em' }}>
+          <h1 className="text-3xl text-gray-900" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>
             Rejoignez THE GYM
           </h1>
           <p className="text-gray-500 mt-1 text-sm">Laissez vos coordonnées, on vous rappelle</p>

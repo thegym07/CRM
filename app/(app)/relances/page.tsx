@@ -34,7 +34,7 @@ export default async function RelancesPage() {
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.04em' }}>Relances</h1>
+        <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>Relances</h1>
         <p className="text-gray-500 text-sm mt-0.5">
           {total > 0 ? `${total} prospect${total !== 1 ? 's' : ''} à contacter` : 'Aucune relance en attente'}
         </p>
