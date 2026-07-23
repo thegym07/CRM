@@ -37,6 +37,26 @@ export async function getLead(id: string): Promise<Lead | null> {
   return data ? normalize(data) : null
 }
 
+// Cherche un prospect existant par téléphone OU email (anti-doublon)
+export async function findLeadByPhoneOrEmail(
+  telephone: string | null,
+  email: string | null,
+): Promise<Lead | null> {
+  const filters: string[] = []
+  if (telephone) filters.push(`telephone.eq.${telephone}`)
+  if (email) filters.push(`email.eq.${email}`)
+  if (filters.length === 0) return null
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .or(filters.join(','))
+    .limit(1)
+    .maybeSingle()
+  if (error) throw new Error(`findLeadByPhoneOrEmail: ${error.message}`)
+  return data ? normalize(data) : null
+}
+
 export async function createLead(data: Partial<Lead>): Promise<Lead> {
   const insert = {
     ...pickWritable(data),
