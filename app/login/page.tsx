@@ -44,7 +44,7 @@ export default function LoginPage() {
               className="rounded-full shadow-md"
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight" style={{ fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.06em' }}>THE GYM</h1>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>THE GYM</h1>
           <p className="text-gray-500 mt-1 text-sm">CRM Prospects — Ardèche</p>
         </div>
 
