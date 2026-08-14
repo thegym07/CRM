@@ -13,6 +13,7 @@ export function proxy(request: NextRequest) {
   const isPublicPath =
     pathname === '/login' ||
     pathname === '/inscription' ||
+    pathname === '/confidentialite' ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/leads/meta') ||
     pathname.startsWith('/api/inscription') ||
