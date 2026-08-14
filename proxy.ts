@@ -15,7 +15,8 @@ export function proxy(request: NextRequest) {
     pathname === '/inscription' ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/leads/meta') ||
-    pathname.startsWith('/api/inscription')
+    pathname.startsWith('/api/inscription') ||
+    pathname.startsWith('/api/cron')
 
   if (!isPublicPath && !isAuthenticated) {
     return NextResponse.redirect(new URL('/login', request.url))
