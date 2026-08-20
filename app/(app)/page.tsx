@@ -4,21 +4,67 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage() {
-  const all = await getLeads()
-  const total = all.length
-  const nouveaux = all.filter(l => l.statut === 'Nouveau prospect').length
-  const vendus = all.filter(l => l.statut === 'Vendu').length
-  const aRelancer = all.filter(l => l.statut === 'À relancer').length
+type SearchParams = { periode?: string }
 
+// Filtres de période pour les statistiques
+const PERIODES = [
+  { key: '',     label: 'Tout' },
+  { key: '90j',  label: '90 jours' },
+  { key: 'mois', label: 'Mois en cours' },
+]
+
+function debutPeriode(periode: string): Date | null {
+  const now = new Date()
+  if (periode === 'mois') return new Date(now.getFullYear(), now.getMonth(), 1)
+  if (periode === '90j') {
+    const d = new Date()
+    d.setDate(d.getDate() - 90)
+    return d
+  }
+  return null // "Tout"
+}
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams
+  const periode = params.periode ?? ''
+
+  const all = await getLeads()
+
+  // Stats filtrées sur la date d'ajout du prospect
+  const debut = debutPeriode(periode)
+  const filtered = debut ? all.filter(l => new Date(l.created_at) >= debut) : all
+
+  const total = filtered.length
+  const nouveaux = filtered.filter(l => l.statut === 'Nouveau prospect').length
+  const vendus = filtered.filter(l => l.statut === 'Vendu').length
+  const aRelancer = filtered.filter(l => l.statut === 'À relancer').length
+
+  // Relances du jour : toujours globales (indépendantes du filtre)
   const today = new Date().toISOString().split('T')[0]
   const relancesAujourdhui = all.filter(l => l.date_relance && l.date_relance <= today)
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      </div>
+
+      {/* Filtres de période */}
+      <div className="flex gap-2 flex-wrap mb-5">
+        {PERIODES.map(p => {
+          const active = periode === p.key
+          return (
+            <Link key={p.label} href={`/${p.key ? `?periode=${p.key}` : ''}`}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                active
+                  ? 'bg-[#F5C800] text-black border-[#F5C800]'
+                  : 'border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-500 bg-white'
+              }`}>
+              {p.label}
+            </Link>
+          )
+        })}
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-8 lg:grid-cols-4">
