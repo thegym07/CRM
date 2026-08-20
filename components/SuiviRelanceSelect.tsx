@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+// Palette harmonisée : gris = en attente, jaune = à traiter, vert = positif, rouge = négatif
 const STYLE: Record<string, { bg: string; fg: string }> = {
   'À appeler':      { bg: '#e5e7eb', fg: '#374151' }, // gris
-  'Pas de réponse': { bg: '#fb923c', fg: '#ffffff' }, // orange
+  'Pas de réponse': { bg: '#F5C800', fg: '#111111' }, // jaune brand
   'RDV repris':     { bg: '#22c55e', fg: '#ffffff' }, // vert
   'Perdu':          { bg: '#ef4444', fg: '#ffffff' }, // rouge
 }

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import SuiviRelanceSelect from '@/components/SuiviRelanceSelect'
 import CallTracker from '@/components/CallTracker'
 import CopyButton from '@/components/CopyButton'
+import DeleteButton from '@/components/DeleteButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,7 +53,7 @@ export default async function RelancesPage() {
           {fromShowUp.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <h2 className="text-sm font-semibold text-orange-500">À relancer (depuis Show-up)</h2>
+                <h2 className="text-sm font-semibold text-yellow-600">À relancer (depuis Rendez-vous)</h2>
                 <span className="text-xs text-gray-400">{fromShowUp.length} contact{fromShowUp.length !== 1 ? 's' : ''}</span>
               </div>
               <div className="space-y-2">
@@ -103,11 +104,14 @@ function LeadCard({ lead, overdue }: { lead: Awaited<ReturnType<typeof getLeads>
           <p className="text-xs text-gray-400 mt-0.5">{lead.statut}</p>
         </div>
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <SuiviRelanceSelect
-            leadId={lead.id}
-            value={lead.suivi_relance ?? 'À appeler'}
-            nom={lead.nom}
-          />
+          <div className="flex items-center gap-1">
+            <SuiviRelanceSelect
+              leadId={lead.id}
+              value={lead.suivi_relance ?? 'À appeler'}
+              nom={lead.nom}
+            />
+            <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+          </div>
           <CallTracker leadId={lead.id} appels={lead.appels ?? []} />
           {lead.telephone && (
             <div className="flex items-center gap-1 bg-gray-100 border border-gray-200 rounded-lg px-2.5 py-1.5">

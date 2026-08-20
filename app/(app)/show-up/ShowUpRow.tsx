@@ -6,8 +6,10 @@ import CopyButton from '@/components/CopyButton'
 import InlineSelect from '@/components/InlineSelect'
 import InlineNotes from '@/components/InlineNotes'
 import InlineDateTime from '@/components/InlineDateTime'
+import DeleteButton from '@/components/DeleteButton'
 import type { Lead } from '@/lib/supabase'
 
+// Palette harmonisée : gris = en attente, jaune = à traiter, vert = positif, rouge = négatif
 const PRESENCE_STYLE = {
   'null':  { bg: '#e5e7eb', fg: '#6b7280' }, // gris (en attente)
   'true':  { bg: '#22c55e', fg: '#ffffff' }, // vert
@@ -16,7 +18,7 @@ const PRESENCE_STYLE = {
 
 const RESULT_STYLE = {
   'Vendu':      { bg: '#22c55e', fg: '#ffffff' }, // vert
-  'À relancer': { bg: '#fb923c', fg: '#ffffff' }, // orange
+  'À relancer': { bg: '#F5C800', fg: '#111111' }, // jaune brand
   'Refus':      { bg: '#ef4444', fg: '#ffffff' }, // rouge
 }
 
@@ -55,7 +57,7 @@ function ResultCell({ leadId, presence, result, setResult }: {
   }
   if (presence === 'false') {
     return (
-      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ background: '#fb923c', color: '#fff' }}>
+      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ background: '#F5C800', color: '#111' }}>
         À relancer
       </span>
     )
@@ -116,6 +118,9 @@ export default function ShowUpRow({ lead, faded }: { lead: Lead; faded: boolean 
       <td className="px-4 py-3 align-top min-w-[220px]">
         <InlineNotes leadId={lead.id} value={lead.notes} />
       </td>
+      <td className="px-2 py-3 text-center">
+        <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+      </td>
     </tr>
   )
 }
@@ -141,7 +146,10 @@ export function ShowUpCard({ lead, faded }: { lead: Lead; faded: boolean }) {
           </Link>
           {lead.activite && <p className="text-xs text-gray-500 mt-0.5">{lead.activite}</p>}
         </div>
-        <InlineDateTime leadId={lead.id} value={lead.date_rdv} />
+        <div className="flex items-center gap-1">
+          <InlineDateTime leadId={lead.id} value={lead.date_rdv} />
+          <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+        </div>
       </div>
 
       {lead.telephone && (

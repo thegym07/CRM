@@ -3,11 +3,12 @@
 import { useRouter } from 'next/navigation'
 import InlineSelect from './InlineSelect'
 
+// Palette harmonisée : gris = en attente, jaune = à traiter, vert = positif
 const STYLE_MAP = {
   'Nouveau prospect':       { bg: '#22c55e', fg: '#ffffff' }, // vert
-  'Contacté sans réponse':  { bg: '#fb923c', fg: '#ffffff' }, // orange
-  'À relancer':             { bg: '#EEFF00', fg: '#000000' }, // fluo jaune
-  'RDV pris':               { bg: '#fde047', fg: '#000000' }, // jaune
+  'Contacté sans réponse':  { bg: '#e5e7eb', fg: '#374151' }, // gris
+  'À relancer':             { bg: '#F5C800', fg: '#111111' }, // jaune brand
+  'RDV pris':               { bg: '#111111', fg: '#F5C800' }, // noir/jaune (part en RDV)
 }
 
 export default function StatutLeadSelect({ leadId, value }: { leadId: string; value: string }) {
