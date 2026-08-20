@@ -21,7 +21,7 @@ export default function DeleteButton({ leadId, leadNom }: { leadId: string; lead
       onClick={handleDelete}
       disabled={loading}
       title="Supprimer"
-      className="w-7 h-7 rounded flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+      className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
     >
       {loading ? '…' : '✕'}
     </button>

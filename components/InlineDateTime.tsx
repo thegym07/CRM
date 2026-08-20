@@ -104,7 +104,7 @@ export default function InlineDateTime({ leadId, value }: { leadId: string; valu
     return (
       <button
         onClick={() => setEditing(true)}
-        className="blink-warn inline-flex items-center gap-1.5 text-sm font-bold text-orange-700 bg-orange-100 border border-orange-300 px-3 py-2 rounded-lg hover:bg-orange-200 transition-colors"
+        className="blink-warn inline-flex items-center gap-1.5 text-sm font-bold text-black bg-[#F5C800] border border-yellow-500 px-3 py-2 rounded-lg hover:bg-[#e6ba00] transition-colors"
       >
         📅 Ajouter la date
       </button>

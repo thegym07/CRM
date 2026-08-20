@@ -12,7 +12,7 @@ const topItems = [
 // Étapes de l'entonnoir (les prospects descendent et peuvent remonter)
 const funnelItems = [
   { href: '/leads', label: 'Prospects', icon: '👥' },
-  { href: '/show-up', label: 'RDV / Show Up', icon: '📅' },
+  { href: '/show-up', label: 'Rendez-vous', icon: '📅' },
   { href: '/relances', label: 'Relances', icon: '🔔' },
 ]
 
