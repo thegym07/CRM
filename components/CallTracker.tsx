@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 function fmt(iso: string): string {
-  return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
 }
 
 export default function CallTracker({ leadId, appels }: { leadId: string; appels: string[] }) {

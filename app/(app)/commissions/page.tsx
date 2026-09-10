@@ -9,10 +9,9 @@ export const dynamic = 'force-dynamic'
 // propre montant figé en base).
 const COMMISSION_PAR_RDV = 10
 
-const moisKey = (iso: string) => {
-  const d = new Date(iso)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
+// Clé "YYYY-MM" calculée en heure française (indépendante du fuseau serveur)
+const moisKey = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' }).slice(0, 7)
 
 function moisLabel(key: string): string {
   const [y, m] = key.split('-').map(Number)
@@ -83,7 +82,7 @@ export default async function CommissionsPage() {
                     <span className="flex-1 min-w-0 text-sm font-medium text-gray-900 truncate">{c.nom}</span>
                   )}
                   <span className="text-xs text-gray-500 whitespace-nowrap">
-                    {new Date(c.date_rdv).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                    {new Date(c.date_rdv).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' })}
                   </span>
                   {statut ? (
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ISSUE_BADGE[statut] ?? 'bg-gray-100 text-gray-600'}`}>

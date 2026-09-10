@@ -15,7 +15,7 @@ function formatLabel(d: Date): string {
   // Sans année : "mer. 17 juin · 14:30"
   return d.toLocaleString('fr-FR', {
     weekday: 'short', day: '2-digit', month: 'long',
-    hour: '2-digit', minute: '2-digit',
+    hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris',
   }).replace(',', ' ·')
 }
 

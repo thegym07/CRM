@@ -34,7 +34,7 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{lead.nom}</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            Ajouté le {new Date(lead.created_at).toLocaleDateString('fr-FR')}
+            Ajouté le {new Date(lead.created_at).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}
           </p>
         </div>
         <div className="flex gap-2">
@@ -69,7 +69,7 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
         <Section title="Rendez-vous">
           <Row label="Date & heure">
             {lead.date_rdv
-              ? <span className="text-gray-900">{new Date(lead.date_rdv).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</span>
+              ? <span className="text-gray-900">{new Date(lead.date_rdv).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' })}</span>
               : <Empty />}
           </Row>
           <Row label="Activité"><span className="text-gray-900">{lead.activite || '—'}</span></Row>
