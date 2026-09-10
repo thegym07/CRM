@@ -117,9 +117,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs text-gray-600 whitespace-nowrap">
-                      {new Date(lead.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      {new Date(lead.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Paris' })}
                       <span className="text-gray-400 ml-1">
-                        {new Date(lead.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(lead.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}
                       </span>
                     </span>
                   </td>
