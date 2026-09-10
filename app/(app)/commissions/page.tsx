@@ -1,20 +1,18 @@
 import { getLeads } from '@/lib/db'
+import { getCommissions, type Commission } from '@/lib/commissions'
 import Link from 'next/link'
-import type { Lead } from '@/lib/supabase'
+import CommissionDelete from './CommissionDelete'
 
 export const dynamic = 'force-dynamic'
 
-// Montant versé par RDV programmé où le prospect était PRÉSENT (présence = Oui),
-// peu importe l'issue (vente ou non). En attente / absents : non comptés.
+// Montant de référence affiché dans le sous-titre (chaque ligne garde son
+// propre montant figé en base).
 const COMMISSION_PAR_RDV = 10
 
-// Date de rattachement d'un RDV : la date du RDV, sinon la date de mise à jour
-// (cas rare d'une présence validée sans date saisie).
-function dateRdv(l: Lead): Date {
-  return new Date(l.date_rdv ?? l.updated_at)
+const moisKey = (iso: string) => {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
-
-const moisKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 
 function moisLabel(key: string): string {
   const [y, m] = key.split('-').map(Number)
@@ -33,24 +31,19 @@ const ISSUE_BADGE: Record<string, string> = {
 }
 
 export default async function CommissionsPage() {
-  const leads = await getLeads()
+  const [commissions, leads] = await Promise.all([getCommissions(), getLeads()])
+  const statutParLead = new Map(leads.map(l => [l.id, l.statut]))
 
-  // Seuls comptent les RDV où le prospect était présent
-  const presents = leads.filter(l => l.rdv_honore === true)
-
-  // Regroupement par mois (du plus récent au plus ancien)
-  const parMois = new Map<string, Lead[]>()
-  for (const l of presents) {
-    const key = moisKey(dateRdv(l))
-    parMois.set(key, [...(parMois.get(key) ?? []), l])
+  // Regroupement par mois (date du RDV figée à la création de la commission)
+  const parMois = new Map<string, Commission[]>()
+  for (const c of commissions) {
+    const key = moisKey(c.date_rdv)
+    parMois.set(key, [...(parMois.get(key) ?? []), c])
   }
-  const moisTries = Array.from(parMois.keys()).sort().reverse()
-
-  const moisCourant = moisKey(new Date())
-  const duMois = (parMois.get(moisCourant) ?? []).sort(
-    (a, b) => dateRdv(b).getTime() - dateRdv(a).getTime()
-  )
-  const historique = moisTries.filter(k => k !== moisCourant)
+  const moisCourant = moisKey(new Date().toISOString())
+  const duMois = (parMois.get(moisCourant) ?? [])
+  const historique = Array.from(parMois.keys()).sort().reverse().filter(k => k !== moisCourant)
+  const totalMois = duMois.reduce((s, c) => s + c.montant, 0)
 
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
@@ -59,7 +52,8 @@ export default async function CommissionsPage() {
           💶 Commission Bonus
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          {COMMISSION_PAR_RDV} € par RDV programmé où le prospect était présent — vente ou non.
+          {COMMISSION_PAR_RDV} € par RDV où le prospect était présent — vente ou non.
+          Les commissions sont figées : supprimer un prospect ailleurs ne les retire pas.
         </p>
       </div>
 
@@ -68,31 +62,43 @@ export default async function CommissionsPage() {
         <p className="label-condensed mb-1">{moisLabel(moisCourant)} — mois en cours</p>
         <div className="flex items-end gap-3 flex-wrap">
           <p className="text-5xl font-bold text-gray-900" style={{ letterSpacing: '-0.03em' }}>
-            {euros(duMois.length * COMMISSION_PAR_RDV)}
+            {euros(totalMois)}
           </p>
           <p className="text-sm text-gray-500 pb-1.5">
-            {duMois.length} RDV présent{duMois.length !== 1 ? 's' : ''} × {COMMISSION_PAR_RDV} €
+            {duMois.length} RDV présent{duMois.length !== 1 ? 's' : ''}
           </p>
         </div>
 
         {duMois.length > 0 && (
           <div className="mt-5 divide-y divide-gray-100 border-t border-gray-100">
-            {duMois.map(l => (
-              <div key={l.id} className="flex items-center gap-3 py-2.5">
-                <Link href={`/leads/${l.id}`} className="flex-1 min-w-0 text-sm font-medium text-gray-900 hover:text-[#F5C800] truncate">
-                  {l.nom}
-                </Link>
-                <span className="text-xs text-gray-500 whitespace-nowrap">
-                  {dateRdv(l).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                </span>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ISSUE_BADGE[l.statut] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {l.statut === 'RDV pris' ? 'En cours' : l.statut}
-                </span>
-                <span className="text-sm font-semibold text-gray-900 w-14 text-right">
-                  +{COMMISSION_PAR_RDV} €
-                </span>
-              </div>
-            ))}
+            {duMois.map(c => {
+              const statut = c.lead_id ? statutParLead.get(c.lead_id) : undefined
+              return (
+                <div key={c.id} className="flex items-center gap-3 py-2.5">
+                  {c.lead_id && statut ? (
+                    <Link href={`/leads/${c.lead_id}`} className="flex-1 min-w-0 text-sm font-medium text-gray-900 hover:text-[#F5C800] truncate">
+                      {c.nom}
+                    </Link>
+                  ) : (
+                    <span className="flex-1 min-w-0 text-sm font-medium text-gray-900 truncate">{c.nom}</span>
+                  )}
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                    {new Date(c.date_rdv).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                  </span>
+                  {statut ? (
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ISSUE_BADGE[statut] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {statut === 'RDV pris' ? 'En cours' : statut}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                      Supprimé du CRM
+                    </span>
+                  )}
+                  <span className="text-sm font-semibold text-gray-900 w-12 text-right">+{c.montant} €</span>
+                  <CommissionDelete id={c.id} nom={c.nom} />
+                </div>
+              )
+            })}
           </div>
         )}
         {duMois.length === 0 && (
@@ -118,13 +124,13 @@ export default async function CommissionsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {historique.map(key => {
-                const n = parMois.get(key)!.length
+                const rows = parMois.get(key)!
                 return (
                   <tr key={key} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-gray-900 font-medium">{moisLabel(key)}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{n}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{rows.length}</td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                      {euros(n * COMMISSION_PAR_RDV)}
+                      {euros(rows.reduce((s, c) => s + c.montant, 0))}
                     </td>
                   </tr>
                 )
