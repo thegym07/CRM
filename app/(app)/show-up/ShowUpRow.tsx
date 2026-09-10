@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import CopyButton from '@/components/CopyButton'
 import InlineSelect from '@/components/InlineSelect'
@@ -24,41 +25,44 @@ const RESULT_STYLE = {
 
 const presenceValue = (v: boolean | null) => v === true ? 'true' : v === false ? 'false' : 'null'
 
-async function putResult(leadId: string, value: string | null) {
+async function putLead(leadId: string, data: Record<string, unknown>) {
   await fetch(`/api/leads/${leadId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ resultat_rdv: value }),
+    body: JSON.stringify(data),
   })
 }
 
-function ResultCell({ leadId, presence, result, setResult }: {
+/**
+ * Résultat du RDV : écrit directement le statut du prospect.
+ * Vente/Refus => sort de l'entonnoir (stats). À rappeler => bascule en section Relances.
+ */
+function ResultCell({ leadId, presence, onDone }: {
   leadId: string
   presence: string
-  result: string
-  setResult: (v: string) => void
+  onDone: () => void
 }) {
   if (presence === 'true') {
     return (
       <InlineSelect
         leadId={leadId}
-        field="resultat_rdv"
-        value={result || 'null'}
+        field="statut"
+        value="RDV pris"
         options={[
-          { label: '—',          value: 'null' },
-          { label: 'Vente ✓',    value: 'Vendu' },
-          { label: 'À rappeler', value: 'À relancer' },
-          { label: 'Refus',      value: 'Refus' },
+          { label: '—',            value: 'RDV pris' },
+          { label: 'Vente ✓',      value: 'Vendu' },
+          { label: 'À rappeler →', value: 'À relancer' },
+          { label: 'Refus',        value: 'Refus' },
         ]}
         styleMap={RESULT_STYLE}
-        onSaved={setResult}
+        onSaved={(v) => { if (v !== 'RDV pris') onDone() }}
       />
     )
   }
   if (presence === 'false') {
     return (
       <span className="text-xs font-semibold px-2 py-1 rounded" style={{ background: '#F5C800', color: '#111' }}>
-        À relancer
+        À relancer →
       </span>
     )
   }
@@ -66,13 +70,19 @@ function ResultCell({ leadId, presence, result, setResult }: {
 }
 
 export default function ShowUpRow({ lead, faded }: { lead: Lead; faded: boolean }) {
+  const router = useRouter()
   const [presence, setPresence] = useState(presenceValue(lead.rdv_honore))
-  const [result, setResult] = useState(lead.resultat_rdv ?? '')
 
-  function onPresence(v: string) {
+  async function onPresence(v: string) {
     setPresence(v)
-    if (v === 'false') { setResult('À relancer'); putResult(lead.id, 'À relancer') }
-    if (v === 'null')  { setResult(''); putResult(lead.id, null) }
+    if (v === 'false') {
+      // Absent => part en Relances (même onglet, section du bas)
+      await putLead(lead.id, { statut: 'À relancer', resultat_rdv: 'À relancer' })
+      router.refresh()
+    }
+    if (v === 'null') {
+      await putLead(lead.id, { resultat_rdv: null })
+    }
   }
 
   const present = presence === 'true'
@@ -113,7 +123,7 @@ export default function ShowUpRow({ lead, faded }: { lead: Lead; faded: boolean 
         />
       </td>
       <td className="px-4 py-3 text-center">
-        <ResultCell leadId={lead.id} presence={presence} result={result} setResult={setResult} />
+        <ResultCell leadId={lead.id} presence={presence} onDone={() => router.refresh()} />
       </td>
       <td className="px-4 py-3 align-top min-w-[220px]">
         <InlineNotes leadId={lead.id} value={lead.notes} />
@@ -126,13 +136,18 @@ export default function ShowUpRow({ lead, faded }: { lead: Lead; faded: boolean 
 }
 
 export function ShowUpCard({ lead, faded }: { lead: Lead; faded: boolean }) {
+  const router = useRouter()
   const [presence, setPresence] = useState(presenceValue(lead.rdv_honore))
-  const [result, setResult] = useState(lead.resultat_rdv ?? '')
 
-  function onPresence(v: string) {
+  async function onPresence(v: string) {
     setPresence(v)
-    if (v === 'false') { setResult('À relancer'); putResult(lead.id, 'À relancer') }
-    if (v === 'null')  { setResult(''); putResult(lead.id, null) }
+    if (v === 'false') {
+      await putLead(lead.id, { statut: 'À relancer', resultat_rdv: 'À relancer' })
+      router.refresh()
+    }
+    if (v === 'null') {
+      await putLead(lead.id, { resultat_rdv: null })
+    }
   }
 
   const present = presence === 'true'
@@ -172,7 +187,7 @@ export function ShowUpCard({ lead, faded }: { lead: Lead; faded: boolean }) {
           styleMap={PRESENCE_STYLE}
           onSaved={onPresence}
         />
-        <ResultCell leadId={lead.id} presence={presence} result={result} setResult={setResult} />
+        <ResultCell leadId={lead.id} presence={presence} onDone={() => router.refresh()} />
       </div>
 
       <InlineNotes leadId={lead.id} value={lead.notes} />

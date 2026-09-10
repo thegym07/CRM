@@ -11,20 +11,21 @@ export const dynamic = 'force-dynamic'
 
 type SearchParams = { statut?: string; q?: string }
 
-// Filtres affichés (RDV pris exclu : géré dans Show-up)
+// Prospects = jamais eus au téléphone. Le reste vit dans RDV & Relances.
 const FILTRES = [
-  { label: 'Tous',                 value: '' },
-  { label: 'Nouveau prospect',     value: 'Nouveau prospect' },
+  { label: 'Tous',                  value: '' },
+  { label: 'Nouveau prospect',      value: 'Nouveau prospect' },
   { label: 'Contacté sans réponse', value: 'Contacté sans réponse' },
-  { label: 'À rappeler',           value: 'À relancer' },
 ]
 
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams
 
-  // Les prospects "RDV pris" sont gérés dans Show-up
-  let all = (await getLeads()).filter(l => l.statut !== 'RDV pris')
+  // Prospects = jamais eus au téléphone (le suivi actif vit dans RDV & Relances)
+  let all = (await getLeads()).filter(l =>
+    l.statut === 'Nouveau prospect' || l.statut === 'Contacté sans réponse'
+  )
 
   if (params.statut && params.statut !== 'Tous') {
     all = all.filter(l => l.statut === params.statut)
