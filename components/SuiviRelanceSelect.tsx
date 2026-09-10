@@ -44,7 +44,9 @@ export default function SuiviRelanceSelect({ leadId, value, nom }: { leadId: str
           suivi_relance: null,
         }),
       })
-      router.push('/show-up')
+      setCurrent('À appeler')
+      setSaving(false)
+      router.refresh()
       return
     }
 

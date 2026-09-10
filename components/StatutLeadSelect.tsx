@@ -22,12 +22,13 @@ export default function StatutLeadSelect({ leadId, value }: { leadId: string; va
       options={[
         { label: 'Nouveau prospect',      value: 'Nouveau prospect' },
         { label: 'Contacté sans réponse', value: 'Contacté sans réponse' },
-        { label: 'À rappeler',            value: 'À relancer' },
-        { label: 'RDV pris →',           value: 'RDV pris' },
+        { label: 'À rappeler →',          value: 'À relancer' },
+        { label: 'RDV pris →',            value: 'RDV pris' },
       ]}
       styleMap={STYLE_MAP}
       onSaved={(v) => {
-        if (v === 'RDV pris') router.push('/show-up')
+        // À rappeler et RDV pris déplacent le prospect dans l'onglet RDV & Relances
+        if (v === 'RDV pris' || v === 'À relancer') router.push('/show-up')
         else router.refresh()
       }}
     />
