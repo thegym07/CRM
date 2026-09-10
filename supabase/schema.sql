@@ -45,6 +45,22 @@ CREATE TABLE IF NOT EXISTS reports (
 ALTER TABLE reports DISABLE ROW LEVEL SECURITY;
 
 -- =========================
+--  Table COMMISSIONS (bonus commerciale, figées)
+-- =========================
+-- Créée quand la présence d'un RDV passe à « Oui ». Pas de clé étrangère :
+-- supprimer le prospect ne supprime PAS la commission (retrait manuel uniquement).
+CREATE TABLE IF NOT EXISTS commissions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  lead_id UUID,
+  nom TEXT NOT NULL,
+  date_rdv TIMESTAMPTZ NOT NULL,
+  montant INT NOT NULL DEFAULT 10,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE commissions DISABLE ROW LEVEL SECURITY;
+
+-- =========================
 --  updated_at automatique
 -- =========================
 CREATE OR REPLACE FUNCTION update_updated_at()
