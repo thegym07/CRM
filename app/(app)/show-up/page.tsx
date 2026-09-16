@@ -14,12 +14,17 @@ export default async function RdvRelancesPage() {
   const leads = await getLeads()
   const today = new Date().toISOString().split('T')[0]
 
-  // ── Section Rendez-vous : les "RDV pris" uniquement ──
+  // ── Section Rendez-vous : les "RDV pris" uniquement.
+  // Un RDV passé non mis à jour reste ici (section dédiée) tant que son
+  // issue n'est pas saisie — rien ne disparaît tout seul.
   const rdvLeads = leads.filter(l => l.statut === 'RDV pris')
   const withDate = rdvLeads
     .filter(l => l.date_rdv)
     .sort((a, b) => new Date(a.date_rdv!).getTime() - new Date(b.date_rdv!).getTime())
   const withoutDate = rdvLeads.filter(l => !l.date_rdv)
+  const now = Date.now()
+  const passes = withDate.filter(l => new Date(l.date_rdv!).getTime() < now)
+  const aVenir = withDate.filter(l => new Date(l.date_rdv!).getTime() >= now)
 
   // ── Section Relances : statut "À relancer" ou relance datée échue ──
   const relanceLeads = leads.filter(l =>
@@ -41,6 +46,9 @@ export default async function RdvRelancesPage() {
               {withoutDate.length > 0 && (
                 <span className="ml-2 text-yellow-600 font-semibold">⚠ {withoutDate.length} sans date</span>
               )}
+              {passes.length > 0 && (
+                <span className="ml-2 text-red-500 font-semibold">⚠ {passes.length} passé{passes.length !== 1 ? 's' : ''} à mettre à jour</span>
+              )}
             </p>
           </div>
           <Link href="/leads/nouveau" className="btn-primary text-sm">+ Nouveau</Link>
@@ -52,8 +60,9 @@ export default async function RdvRelancesPage() {
           </div>
         ) : (
           <div className="space-y-5">
+            {passes.length > 0 && <BlocRdv titre="⚠ RDV passés — à mettre à jour (présence ? résultat ?)" leads={passes} warn />}
             {withoutDate.length > 0 && <BlocRdv titre="⚠ Sans date fixée" leads={withoutDate} warn />}
-            {withDate.length > 0 && <BlocRdv titre="Programmés" leads={withDate} />}
+            {aVenir.length > 0 && <BlocRdv titre="À venir" leads={aVenir} />}
           </div>
         )}
       </section>
