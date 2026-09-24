@@ -18,6 +18,7 @@ const funnelItems = [
 const bottomItems = [
   { href: '/rapport', label: 'Rapport', icon: '📋' },
   { href: '/commissions', label: 'Commission Bonus', icon: '💶' },
+  { href: '/rentabilite', label: 'Rentabilité', icon: '📈' },
 ]
 
 // Pour la nav mobile (liste à plat)
