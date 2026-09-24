@@ -45,12 +45,15 @@ export default function InlineDateTime({ leadId, value }: { leadId: string; valu
   async function save() {
     if (!jour || !heure) { setEditing(false); return }
     const [h, m] = heure.split(':').map(Number)
+    // Année devinée : celle qui rend la date la plus proche d'aujourd'hui.
+    // (Saisir le RDV d'hier reste cette année ; saisir « janvier » en décembre
+    // part sur l'année suivante.)
     const year = now.getFullYear()
-    let dt = new Date(year, mois, Number(jour), h, m)
-    // Si la date est déjà passée (de plus d'un jour), on suppose l'année suivante
-    if (dt.getTime() < now.getTime() - 86400000) {
-      dt = new Date(year + 1, mois, Number(jour), h, m)
-    }
+    const dt = [year - 1, year, year + 1]
+      .map(y => new Date(y, mois, Number(jour), h, m))
+      .reduce((best, d) =>
+        Math.abs(d.getTime() - now.getTime()) < Math.abs(best.getTime() - now.getTime()) ? d : best
+      )
     const iso = dt.toISOString()
     setSaving(true)
     await fetch(`/api/leads/${leadId}`, {
