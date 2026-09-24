@@ -8,7 +8,7 @@ import InlineSelect from '@/components/InlineSelect'
 import InlineNotes from '@/components/InlineNotes'
 import InlineDateTime from '@/components/InlineDateTime'
 import DeleteButton from '@/components/DeleteButton'
-import type { Lead } from '@/lib/supabase'
+import { FORMULES, type Lead } from '@/lib/supabase'
 
 // Palette harmonisée : gris = en attente, jaune = à traiter, vert = positif, rouge = négatif
 const PRESENCE_STYLE = {
@@ -35,30 +35,17 @@ async function putLead(leadId: string, data: Record<string, unknown>) {
 
 /**
  * Résultat du RDV : écrit directement le statut du prospect.
- * Vente/Refus => sort de l'entonnoir (stats). À rappeler => bascule en section Relances.
+ * Vente => demande d'abord la formule (menu déroulant), puis enregistre les deux.
+ * Refus => sort de l'entonnoir. À rappeler => bascule en section Relances.
  */
 function ResultCell({ leadId, presence, onDone }: {
   leadId: string
   presence: string
   onDone: () => void
 }) {
-  if (presence === 'true') {
-    return (
-      <InlineSelect
-        leadId={leadId}
-        field="statut"
-        value="RDV pris"
-        options={[
-          { label: '—',            value: 'RDV pris' },
-          { label: 'Vente ✓',      value: 'Vendu' },
-          { label: 'À rappeler →', value: 'À relancer' },
-          { label: 'Refus',        value: 'Refus' },
-        ]}
-        styleMap={RESULT_STYLE}
-        onSaved={(v) => { if (v !== 'RDV pris') onDone() }}
-      />
-    )
-  }
+  const [venteEnCours, setVenteEnCours] = useState(false)
+  const [saving, setSaving] = useState(false)
+
   if (presence === 'false') {
     return (
       <span className="text-xs font-semibold px-2 py-1 rounded" style={{ background: '#F5C800', color: '#111' }}>
@@ -66,7 +53,56 @@ function ResultCell({ leadId, presence, onDone }: {
       </span>
     )
   }
-  return <span className="text-xs text-gray-300">—</span>
+  if (presence !== 'true') return <span className="text-xs text-gray-300">—</span>
+
+  // Étape 2 : la vente est choisie, on demande la formule
+  if (venteEnCours) {
+    return (
+      <select
+        autoFocus
+        defaultValue=""
+        disabled={saving}
+        onChange={async (e) => {
+          const v = e.target.value
+          if (v === '__retour') { setVenteEnCours(false); return }
+          if (!v) return
+          setSaving(true)
+          await putLead(leadId, { statut: 'Vendu', offre_souscrite: v })
+          onDone()
+        }}
+        className="text-xs px-2 py-1 rounded border-0 outline-none cursor-pointer font-semibold"
+        style={{ background: '#22c55e', color: '#fff' }}
+      >
+        <option value="">Formule ?</option>
+        {FORMULES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+        <option value="__retour">← Annuler</option>
+      </select>
+    )
+  }
+
+  // Étape 1 : choix du résultat
+  return (
+    <select
+      value="RDV pris"
+      disabled={saving}
+      onChange={async (e) => {
+        const v = e.target.value
+        if (v === 'Vendu') { setVenteEnCours(true); return }
+        if (v === 'À relancer' || v === 'Refus') {
+          setSaving(true)
+          await putLead(leadId, { statut: v })
+          onDone()
+        }
+      }}
+      onClick={e => e.stopPropagation()}
+      className="text-xs px-2 py-1 rounded border-0 outline-none cursor-pointer font-semibold bg-gray-100 text-gray-600"
+    >
+      <option value="RDV pris">—</option>
+      <option value="Vendu">Vente ✓</option>
+      <option value="À relancer">À rappeler →</option>
+      <option value="Refus">Refus</option>
+    </select>
+  )
 }
 
 export default function ShowUpRow({ lead, faded }: { lead: Lead; faded: boolean }) {

@@ -24,6 +24,16 @@ export type Lead = {
 export const STATUTS = ['Nouveau prospect', 'Contacté sans réponse', 'À relancer', 'RDV pris'] as const
 
 export const SOURCES = ['Meta Ads', 'Bouche-à-oreille', 'Passage', 'Formulaire web', 'Autre'] as const
+
+// Formules vendues (les clés doivent correspondre à OFFRES dans la page Rentabilité)
+export const FORMULES = [
+  { value: 'Carnet 10 entrées', label: 'Carnet 10 — 55 €' },
+  { value: 'Carnet 20 entrées', label: 'Carnet 20 — 105 €' },
+  { value: 'Abonnement 1 mois', label: 'Abo 1 mois — 59 €' },
+  { value: 'Abonnement 3 mois', label: 'Abo 3 mois — 55 €/m' },
+  { value: 'Abonnement 6 mois', label: 'Abo 6 mois — 45 €/m' },
+  { value: 'Abonnement 1 an',   label: 'Abo 1 an — 38 €/m' },
+] as const
 export const ACTIVITES = ['cours collectif', 'plateau muscu', 'coaching'] as const
 
 // Palette harmonisée : gris = en attente, jaune = à traiter, vert = positif, rouge = négatif
