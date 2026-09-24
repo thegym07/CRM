@@ -24,28 +24,26 @@ export async function getCommissions(): Promise<Commission[]> {
   return (data ?? []) as Commission[]
 }
 
-/** Crée la commission du lead si elle n'existe pas déjà (1 par prospect). */
+const jourFr = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
+
+/**
+ * Crée la commission du lead si elle n'existe pas déjà pour CE RDV
+ * (déduplication par prospect + jour du RDV : un 2e RDV honoré un autre
+ * jour crée bien une nouvelle commission).
+ */
 export async function ensureCommission(lead: Lead): Promise<void> {
-  const { data, error } = await supabase.from(TABLE).select('id').eq('lead_id', lead.id).limit(1).maybeSingle()
+  const dateRdv = lead.date_rdv ?? new Date().toISOString()
+  const { data, error } = await supabase.from(TABLE).select('id,date_rdv').eq('lead_id', lead.id)
   if (error) { console.error('ensureCommission (lecture):', error.message); return }
-  if (data) return
+  if ((data ?? []).some(c => jourFr(c.date_rdv) === jourFr(dateRdv))) return
   const { error: insErr } = await supabase.from(TABLE).insert({
     lead_id: lead.id,
     nom: lead.nom,
-    date_rdv: lead.date_rdv ?? new Date().toISOString(),
+    date_rdv: dateRdv,
     montant: 10,
   })
   if (insErr) console.error('ensureCommission (insert):', insErr.message)
-}
-
-/**
- * Correction de saisie : si la présence repasse de « Oui » à autre chose,
- * on retire la commission auto du lead (le lead existe encore, c'est une
- * correction — pas une suppression de prospect).
- */
-export async function removeCommissionForLead(leadId: string): Promise<void> {
-  const { error } = await supabase.from(TABLE).delete().eq('lead_id', leadId)
-  if (error) console.error('removeCommissionForLead:', error.message)
 }
 
 /** Suppression manuelle (croix ✕ de l'onglet Commission). */
