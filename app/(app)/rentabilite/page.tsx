@@ -15,10 +15,10 @@ const DEBUT_ACTIVITE = '2026-08' // début du calcul (lancement des pubs)
 const OFFRES: Record<string, { label: string; prix: number; duree: number }> = {
   'Carnet 10 entrées':   { label: 'Carnet 10 entrées — 55 €',        prix: 55,  duree: 1 },
   'Carnet 20 entrées':   { label: 'Carnet 20 entrées — 105 €',       prix: 105, duree: 1 },
-  'Abonnement 1 mois':   { label: 'Abonnement 1 mois — 59 €',        prix: 59,  duree: 1 },
-  'Abonnement 3 mois':   { label: 'Abonnement 3 mois — 55 €/mois',   prix: 55,  duree: 3 },
-  'Abonnement 6 mois':   { label: 'Abonnement 6 mois — 45 €/mois',   prix: 45,  duree: 6 },
-  'Abonnement 1 an':     { label: 'Abonnement 1 an — 38 €/mois',     prix: 38,  duree: 12 },
+  'Abonnement 1 mois':   { label: 'Abonnement 1 mois — 59 €',             prix: 59,  duree: 1 },
+  'Abonnement 3 mois':   { label: 'Abonnement 3 mois — 165 € (3× 55 €)',  prix: 55,  duree: 3 },
+  'Abonnement 6 mois':   { label: 'Abonnement 6 mois — 270 € (6× 45 €)',  prix: 45,  duree: 6 },
+  'Abonnement 1 an':     { label: 'Abonnement 1 an — 456 € (12× 38 €)',   prix: 38,  duree: 12 },
 }
 
 const euros = (n: number) =>
