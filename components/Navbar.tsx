@@ -16,6 +16,7 @@ const funnelItems = [
 ]
 
 const bottomItems = [
+  { href: '/agenda', label: 'Agenda', icon: '🗓️' },
   { href: '/rapport', label: 'Rapport', icon: '📋' },
   { href: '/commissions', label: 'Commission Bonus', icon: '💶' },
   { href: '/rentabilite', label: 'Rentabilité', icon: '📈' },

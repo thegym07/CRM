@@ -7,8 +7,17 @@ import CopyButton from '@/components/CopyButton'
 import InlineSelect from '@/components/InlineSelect'
 import InlineNotes from '@/components/InlineNotes'
 import InlineDateTime from '@/components/InlineDateTime'
+import CreneauInline from '@/components/CreneauPicker'
 import DeleteButton from '@/components/DeleteButton'
 import { FORMULES, type Lead } from '@/lib/supabase'
+
+// Plateau muscu sans date : la date se choisit parmi les dispos coachs
+function DateCell({ lead }: { lead: Lead }) {
+  if (lead.activite === 'plateau muscu' && !lead.date_rdv) {
+    return <CreneauInline leadId={lead.id} />
+  }
+  return <InlineDateTime leadId={lead.id} value={lead.date_rdv} />
+}
 
 // Palette harmonisée : gris = en attente, jaune = à traiter, vert = positif, rouge = négatif
 const PRESENCE_STYLE = {
@@ -142,7 +151,7 @@ export default function ShowUpRow({ lead, faded }: { lead: Lead; faded: boolean 
         ) : <span className="text-gray-300">—</span>}
       </td>
       <td className="px-4 py-3">
-        <InlineDateTime leadId={lead.id} value={lead.date_rdv} />
+        <DateCell lead={lead} />
       </td>
       <td className="px-4 py-3 text-center">
         <InlineSelect
@@ -198,7 +207,7 @@ export function ShowUpCard({ lead, faded }: { lead: Lead; faded: boolean }) {
           {lead.activite && <p className="text-xs text-gray-500 mt-0.5">{lead.activite}</p>}
         </div>
         <div className="flex items-center gap-1">
-          <InlineDateTime leadId={lead.id} value={lead.date_rdv} />
+          <DateCell lead={lead} />
           <DeleteButton leadId={lead.id} leadNom={lead.nom} />
         </div>
       </div>
