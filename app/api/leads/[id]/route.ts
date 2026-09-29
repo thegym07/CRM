@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getLead, updateLead, deleteLead } from '@/lib/db'
 import { ensureCommission } from '@/lib/commissions'
+import { libererCreneauxDuLead } from '@/lib/agenda'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -25,6 +26,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  await libererCreneauxDuLead(id) // ses créneaux coach redeviennent disponibles
   const ok = await deleteLead(id)
   if (!ok) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
   return NextResponse.json({ success: true })

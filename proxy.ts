@@ -17,7 +17,8 @@ export function proxy(request: NextRequest) {
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/leads/meta') ||
     pathname.startsWith('/api/inscription') ||
-    pathname.startsWith('/api/cron')
+    pathname.startsWith('/api/cron') ||
+    pathname.startsWith('/api/calendar')
 
   if (!isPublicPath && !isAuthenticated) {
     return NextResponse.redirect(new URL('/login', request.url))

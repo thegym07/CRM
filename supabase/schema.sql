@@ -61,6 +61,40 @@ CREATE TABLE IF NOT EXISTS commissions (
 ALTER TABLE commissions DISABLE ROW LEVEL SECURITY;
 
 -- =========================
+--  Table COACHES (agenda)
+-- =========================
+CREATE TABLE IF NOT EXISTS coaches (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nom TEXT NOT NULL,
+  couleur TEXT NOT NULL DEFAULT '#F5C800',
+  email TEXT,
+  ical_token TEXT NOT NULL DEFAULT replace(gen_random_uuid()::text, '-', ''),
+  actif BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE coaches DISABLE ROW LEVEL SECURITY;
+
+-- =========================
+--  Table CRENEAUX (dispos + RDV bloqués)
+-- =========================
+-- lead_id NULL = disponibilité libre ; renseigné = créneau réservé.
+-- UNIQUE(coach_id, debut) = verrou anti-doublon côté base.
+CREATE TABLE IF NOT EXISTS creneaux (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  coach_id UUID NOT NULL,
+  debut TIMESTAMPTZ NOT NULL,
+  fin TIMESTAMPTZ NOT NULL,
+  lead_id UUID,
+  lead_nom TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (coach_id, debut)
+);
+
+ALTER TABLE creneaux DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS creneaux_debut_idx ON creneaux(debut);
+
+-- =========================
 --  updated_at automatique
 -- =========================
 CREATE OR REPLACE FUNCTION update_updated_at()

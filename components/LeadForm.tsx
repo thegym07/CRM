@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ACTIVITES, type Lead } from '@/lib/supabase'
+import { CreneauSelect } from '@/components/CreneauPicker'
 
 type LeadFormProps = {
   lead?: Lead
@@ -31,6 +32,9 @@ export default function LeadForm({ lead, mode }: LeadFormProps) {
     date_rdv: lead?.date_rdv ? lead.date_rdv.slice(0, 16) : '',
     activite: lead?.activite ?? '',
   })
+  // Plateau muscu : réservation d'un créneau coach au lieu d'une date libre
+  const [creneauId, setCreneauId] = useState('')
+  const plateauMuscu = form.activite === 'plateau muscu'
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target
@@ -44,15 +48,16 @@ export default function LeadForm({ lead, mode }: LeadFormProps) {
     setSaving(true)
     setError('')
 
+    const rdvChoisi = plateauMuscu ? !!creneauId : !!form.date_rdv
     const data: Partial<Lead> = {
       nom: nomComplet,
       telephone: form.telephone.trim() || null,
       email: form.email.trim() || null,
-      date_rdv: form.date_rdv || null,
+      date_rdv: plateauMuscu ? null : (form.date_rdv || null),
       activite: (form.activite || null) as Lead['activite'],
       // Un RDV renseigné => le prospect part directement dans RDV / Show Up
       ...(mode === 'create'
-        ? { statut: form.date_rdv ? 'RDV pris' : 'Nouveau prospect' }
+        ? { statut: rdvChoisi ? 'RDV pris' : 'Nouveau prospect' }
         : {}),
     }
 
@@ -72,8 +77,25 @@ export default function LeadForm({ lead, mode }: LeadFormProps) {
       return
     }
 
+    // Plateau muscu : on réserve le créneau coach choisi (verrou côté base)
+    if (mode === 'create' && plateauMuscu && creneauId) {
+      const created = await res.json()
+      const resa = await fetch(`/api/creneaux/${creneauId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_id: created.id }),
+      })
+      if (!resa.ok) {
+        // Créneau pris entre-temps : le prospect est créé, on le laisse choisir
+        // un autre créneau depuis l'onglet Rendez-vous.
+        router.push('/show-up')
+        router.refresh()
+        return
+      }
+    }
+
     const dest = mode === 'create'
-      ? (form.date_rdv ? '/show-up' : '/leads')
+      ? (rdvChoisi ? '/show-up' : '/leads')
       : `/leads/${lead!.id}`
     router.push(dest)
     router.refresh()
@@ -100,15 +122,21 @@ export default function LeadForm({ lead, mode }: LeadFormProps) {
         <Field label="Adresse mail">
           <input name="email" value={form.email} onChange={handleChange} className="input-field" placeholder="marie@exemple.fr" type="email" />
         </Field>
-        <Field label="Date et heure du RDV">
-          <input name="date_rdv" value={form.date_rdv} onChange={handleChange} className="input-field" type="datetime-local" />
-        </Field>
         <Field label="Activité">
           <select name="activite" value={form.activite} onChange={handleChange} className="input-field">
             <option value="">— Choisir —</option>
             {ACTIVITES.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
         </Field>
+        {plateauMuscu ? (
+          <Field label="Créneau avec un coach">
+            <CreneauSelect value={creneauId} onChange={setCreneauId} />
+          </Field>
+        ) : (
+          <Field label="Date et heure du RDV">
+            <input name="date_rdv" value={form.date_rdv} onChange={handleChange} className="input-field" type="datetime-local" />
+          </Field>
+        )}
       </div>
 
       <div className="flex gap-3 pt-2">

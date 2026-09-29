@@ -1,4 +1,5 @@
 import { getReport, getReports, type DailyReport } from '@/lib/reports'
+import { getLeads } from '@/lib/db'
 import RapportForm from './RapportForm'
 import DateNav from './DateNav'
 
@@ -54,6 +55,14 @@ export default async function RapportPage({ searchParams }: { searchParams: Prom
   const allReports = tousLesRapports.slice(0, 30)
   const bilans = bilansMensuels(tousLesRapports)
 
+  // Séances muscu accompagnées le jour sélectionné (présence Oui + coach)
+  const jourFr = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
+  const seancesMuscu = (await getLeads()).filter(l =>
+    l.activite === 'plateau muscu' && l.rdv_honore === true &&
+    l.date_rdv && jourFr(l.date_rdv) === selectedDate
+  )
+  const coachsDuJour = Array.from(new Set(seancesMuscu.map(s => s.coach_assigne).filter(Boolean)))
+
   const dateLabel = new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   })
@@ -74,9 +83,19 @@ export default async function RapportPage({ searchParams }: { searchParams: Prom
       </div>
 
       {/* Saisie manuelle */}
-      <section className="mb-8">
+      <section className="mb-4">
         <RapportForm date={selectedDate} initial={reportDuJour} />
       </section>
+
+      {/* Séances muscu accompagnées */}
+      <div className="mb-8 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm flex items-center gap-3 text-sm">
+        <span>💪</span>
+        <span className="text-gray-600">Séances muscu accompagnées :</span>
+        <span className="font-bold text-gray-900">{seancesMuscu.length}</span>
+        {coachsDuJour.length > 0 && (
+          <span className="text-xs text-gray-400">({coachsDuJour.join(', ')})</span>
+        )}
+      </div>
 
       {/* Bilan mensuel : total et moyenne par jour saisi */}
       {bilans.length > 0 && (
