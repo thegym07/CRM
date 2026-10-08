@@ -16,6 +16,7 @@ export type Lead = {
   suivi_relance: 'À appeler' | 'Pas de réponse' | 'RDV repris' | 'Perdu' | null
   notes: string | null
   appels: string[]            // horodatages ISO des tentatives d'appel
+  vendu_le: string | null     // date réelle de la vente (figée au passage en Vendu)
   created_at: string
   updated_at: string
 }

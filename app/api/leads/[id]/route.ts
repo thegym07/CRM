@@ -21,6 +21,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   // Commission Bonus retire une commission (règle métier).
   if (data.rdv_honore === true) await ensureCommission(lead)
 
+  // Date de vente figée au moment où le statut passe à « Vendu »
+  // (quel que soit l'écran d'où vient la vente). Jamais écrasée ensuite.
+  if (data.statut === 'Vendu' && !lead.vendu_le) {
+    await updateLead(id, { vendu_le: new Date().toISOString() })
+  }
+
   return NextResponse.json(lead)
 }
 

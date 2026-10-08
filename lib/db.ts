@@ -7,7 +7,7 @@ const TABLE = 'leads'
 const WRITABLE: (keyof Lead)[] = [
   'nom', 'telephone', 'email', 'source', 'date_rdv', 'activite',
   'rdv_honore', 'resultat_rdv', 'statut', 'offre_souscrite', 'coach_assigne',
-  'date_relance', 'motif_relance', 'suivi_relance', 'notes', 'appels',
+  'date_relance', 'motif_relance', 'suivi_relance', 'notes', 'appels', 'vendu_le',
 ]
 
 function pickWritable(data: Partial<Lead>): Partial<Lead> {
