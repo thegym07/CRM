@@ -153,8 +153,42 @@ export default async function CommissionsPage({ searchParams }: { searchParams: 
               {historique.map(key => {
                 const rows = parMois.get(key)!
                 return (
-                  <tr key={key} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-900 font-medium">{moisLabel(key)}</td>
+                  <tr key={key} className="hover:bg-gray-50 align-top">
+                    <td className="px-4 py-3">
+                      <details>
+                        <summary className="text-gray-900 font-medium cursor-pointer select-none">
+                          {moisLabel(key)} <span className="text-xs text-gray-400">(détail)</span>
+                        </summary>
+                        <ul className="mt-2 space-y-1.5">
+                          {rows.map(c => {
+                            const statut = c.lead_id ? statutParLead.get(c.lead_id) : undefined
+                            return (
+                              <li key={c.id} className="flex items-center gap-2 text-xs text-gray-500">
+                                <span className="whitespace-nowrap">
+                                  {new Date(c.date_rdv).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' })}
+                                </span>
+                                {c.lead_id && statut ? (
+                                  <Link href={`/leads/${c.lead_id}`} className="font-medium text-gray-700 hover:text-[#F5C800] truncate">
+                                    {c.nom}
+                                  </Link>
+                                ) : (
+                                  <span className="font-medium text-gray-700 truncate">{c.nom}</span>
+                                )}
+                                {statut ? (
+                                  <span className={`font-medium px-2 py-0.5 rounded-full ${ISSUE_BADGE[statut] ?? 'bg-gray-100 text-gray-600'}`}>
+                                    {statut === 'Vendu' ? 'Vendu ✓' : statut === 'RDV pris' ? 'En cours' : statut}
+                                  </span>
+                                ) : (
+                                  <span className="font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                                    Supprimé du CRM
+                                  </span>
+                                )}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </details>
+                    </td>
                     <td className="px-4 py-3 text-right text-gray-700">{rows.length}</td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">
                       {euros(rows.reduce((s, c) => s + c.montant, 0))}
