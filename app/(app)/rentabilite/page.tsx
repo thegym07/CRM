@@ -45,8 +45,8 @@ const joursDansMois = (key: string) => {
   return new Date(y, m, 0).getDate()
 }
 
-// Date de la vente : le RDV (la vente se fait pendant la séance), sinon la mise à jour
-const dateVente = (l: Lead) => l.date_rdv ?? l.updated_at
+// Date de la vente : la date figée au passage en Vendu (fallback anciens : RDV puis maj)
+const dateVente = (l: Lead) => l.vendu_le ?? l.date_rdv ?? l.updated_at
 
 export default async function RentabilitePage() {
   const [leads, commissions] = await Promise.all([getLeads(), getCommissions()])
@@ -64,13 +64,22 @@ export default async function RentabilitePage() {
   const ventesAQualifier = ventes.filter(l => !l.offre_souscrite || !OFFRES[l.offre_souscrite])
 
   // ── Revenus par mois (mensualités récurrentes étalées sur la durée) ──
+  // + détail nominatif de ce qui compose chaque mois (pour l'historique dépliable)
   const revenus = new Map<string, number>()
+  const detailMois = new Map<string, { nom: string; label: string; montant: number; leadId: string }[]>()
   for (const v of ventes) {
     const offre = v.offre_souscrite ? OFFRES[v.offre_souscrite] : undefined
     if (!offre) continue
     let mois = cleMois(dateVente(v))
     for (let i = 0; i < offre.duree; i++) {
-      if (mois <= moisCourant) revenus.set(mois, (revenus.get(mois) ?? 0) + offre.prix)
+      if (mois <= moisCourant) {
+        revenus.set(mois, (revenus.get(mois) ?? 0) + offre.prix)
+        const mensualite = offre.duree > 1 ? ` (mensualité ${i + 1}/${offre.duree})` : ''
+        detailMois.set(mois, [
+          ...(detailMois.get(mois) ?? []),
+          { nom: v.nom, label: `${v.offre_souscrite}${mensualite}`, montant: offre.prix, leadId: v.id },
+        ])
+      }
       mois = moisSuivant(mois)
     }
   }
@@ -193,9 +202,29 @@ export default async function RentabilitePage() {
               const totalDep = dep.pub + dep.salaire + dep.com
               const res = rev - totalDep
               const t = tauxDe(key)
+              const detail = detailMois.get(key) ?? []
               return (
-                <tr key={key} className={`hover:bg-gray-50 ${key === moisCourant ? 'bg-yellow-50' : ''}`}>
-                  <td className="px-4 py-3 font-medium text-gray-900">{labelMois(key)}</td>
+                <tr key={key} className={`hover:bg-gray-50 align-top ${key === moisCourant ? 'bg-yellow-50' : ''}`}>
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {detail.length > 0 ? (
+                      <details>
+                        <summary className="cursor-pointer select-none">
+                          {labelMois(key)} <span className="text-xs text-gray-400 font-normal">(détail)</span>
+                        </summary>
+                        <ul className="mt-2 space-y-1">
+                          {detail.map((d, i) => (
+                            <li key={i} className="text-xs text-gray-500 font-normal whitespace-nowrap">
+                              <Link href={`/leads/${d.leadId}`} className="hover:text-[#F5C800]">{d.nom}</Link>
+                              {' — '}{d.label}{' — '}
+                              <span className="font-semibold text-gray-700">{euros(d.montant)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    ) : (
+                      labelMois(key)
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right text-gray-900">{euros(rev)}</td>
                   <td className="px-4 py-3 text-right text-gray-700">−{euros(totalDep)}</td>
                   <td className={`px-4 py-3 text-right font-bold ${res >= 0 ? 'text-green-600' : 'text-red-500'}`}>
