@@ -208,7 +208,9 @@ export function GestionCoachs({ coaches, baseUrl }: { coaches: Coach[]; baseUrl:
         Où le trouver ? — Google Agenda (sur ordinateur) : Paramètres → son agenda → « Adresse secrète au format iCal », copier.
         — iPhone/iCloud : www.icloud.com → Calendrier → icône de partage de son calendrier → « Calendrier public », copier le lien webcal.
         Ensuite, chaque événement nommé <strong>« Dispo »</strong> dans son agenda devient automatiquement des créneaux réservables d'1 h ici
-        (ex. « Dispo » de 9h à 12h = 3 créneaux). Les récurrences (« Dispo » tous les mardis) fonctionnent. S'il supprime l'événement, les créneaux libres disparaissent ; les créneaux déjà réservés restent.
+        (ex. « Dispo » de 9h à 12h = 3 créneaux). Les récurrences (« Dispo » tous les mardis) fonctionnent.
+        Et surtout : <strong>tout autre rendez-vous qu'il ajoute dans son agenda annule automatiquement les créneaux libres qui le chevauchent</strong> —
+        le coach n'a jamais à toucher au CRM. Les créneaux déjà réservés par une cliente ne sont jamais annulés automatiquement.
       </p>
     </div>
   )
