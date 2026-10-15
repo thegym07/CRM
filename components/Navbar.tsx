@@ -22,8 +22,18 @@ const bottomItems = [
   { href: '/rentabilite', label: 'Rentabilité', icon: '📈' },
 ]
 
-// Pour la nav mobile (liste à plat)
-const navItems = [...topItems, ...funnelItems, ...bottomItems]
+// Nav mobile : les 4 onglets du quotidien, le reste derrière « Plus »
+const mobileMain = [
+  { href: '/', label: 'Dashboard', icon: '📊' },
+  { href: '/leads', label: 'Prospects', icon: '👥' },
+  { href: '/show-up', label: 'RDV', icon: '📅' },
+  { href: '/agenda', label: 'Agenda', icon: '🗓️' },
+]
+const mobilePlus = [
+  { href: '/rapport', label: 'Rapport', icon: '📋' },
+  { href: '/commissions', label: 'Commission Bonus', icon: '💶' },
+  { href: '/rentabilite', label: 'Rentabilité', icon: '📈' },
+]
 
 function NavLink({ item, active }: { item: { href: string; label: string; icon: string }; active: boolean }) {
   return (
@@ -46,6 +56,7 @@ export default function Navbar() {
   const router = useRouter()
   const [loggingOut, setLoggingOut] = useState(false)
   const [logoError, setLogoError] = useState(false)
+  const [plusOpen, setPlusOpen] = useState(false)
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -125,16 +136,45 @@ export default function Navbar() {
         </button>
       </aside>
 
+      {/* Mobile : panneau « Plus » */}
+      {plusOpen && (
+        <>
+          <div className="md:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setPlusOpen(false)} />
+          <div className="md:hidden fixed bottom-16 left-0 right-0 z-50 bg-zinc-900 border-t border-zinc-800 rounded-t-2xl px-4 pt-4 pb-2 shadow-2xl">
+            {mobilePlus.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setPlusOpen(false)}
+                className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium ${
+                  pathname === item.href ? 'text-[#F5C800] bg-[#F5C800]/10' : 'text-zinc-300'
+                }`}
+              >
+                <span className="text-xl">{item.icon}</span>
+                {item.label}
+              </Link>
+            ))}
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-zinc-400 w-full text-left"
+            >
+              <span className="text-xl">🚪</span>
+              {loggingOut ? 'Déconnexion...' : 'Déconnexion'}
+            </button>
+          </div>
+        </>
+      )}
+
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-900 border-t border-zinc-800 flex">
-        {navItems.map((item) => (
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-900 border-t border-zinc-800 flex h-16">
+        {mobileMain.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex-1 flex flex-col items-center py-3 text-xs font-medium transition-colors ${
-              pathname === item.href
-                ? 'text-[#F5C800]'
-                : 'text-zinc-500'
+            onClick={() => setPlusOpen(false)}
+            className={`flex-1 flex flex-col items-center justify-center text-[11px] font-medium transition-colors ${
+              pathname === item.href ? 'text-[#F5C800]' : 'text-zinc-500'
             }`}
           >
             <span className="text-xl mb-0.5">{item.icon}</span>
@@ -142,11 +182,13 @@ export default function Navbar() {
           </Link>
         ))}
         <button
-          onClick={handleLogout}
-          className="flex-1 flex flex-col items-center py-3 text-xs font-medium text-zinc-500"
+          onClick={() => setPlusOpen(o => !o)}
+          className={`flex-1 flex flex-col items-center justify-center text-[11px] font-medium ${
+            plusOpen || mobilePlus.some(i => i.href === pathname) ? 'text-[#F5C800]' : 'text-zinc-500'
+          }`}
         >
-          <span className="text-xl mb-0.5">🚪</span>
-          Sortir
+          <span className="text-xl mb-0.5">⋯</span>
+          Plus
         </button>
       </nav>
     </>

@@ -38,6 +38,14 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       )
     : all
 
+  // Prospect « qui dort » : jamais rappelé depuis plus de 48 h
+  const DORMANT_MS = 48 * 3600 * 1000
+  const dort = (l: (typeof all)[number]) => {
+    const appels = l.appels ?? []
+    const dernier = appels.length > 0 ? Math.max(...appels.map(a => new Date(a).getTime())) : new Date(l.created_at).getTime()
+    return Date.now() - dernier > DORMANT_MS
+  }
+
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-5">
@@ -47,7 +55,13 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           </h1>
           <p className="text-gray-500 text-xs mt-0.5">{filtered.length} prospect{filtered.length !== 1 ? 's' : ''}</p>
         </div>
-        <Link href="/leads/nouveau" className="btn-primary text-sm">+ Nouveau</Link>
+        <div className="flex items-center gap-2">
+          <a href="/api/export/leads"
+            className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-500">
+            ⬇ Export
+          </a>
+          <Link href="/leads/nouveau" className="btn-primary text-sm">+ Nouveau</Link>
+        </div>
       </div>
 
       {/* Filtres */}
@@ -82,7 +96,45 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <>
+        {/* Mobile : cartes */}
+        <div className="md:hidden space-y-2">
+          {filtered.map(lead => (
+            <div key={lead.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <Link href={`/leads/${lead.id}`} className="font-semibold text-gray-900 hover:text-[#F5C800]">
+                    {lead.nom}
+                  </Link>
+                  {dort(lead) && (
+                    <span className="ml-2 text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                      😴 +48 h
+                    </span>
+                  )}
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Ajouté le {new Date(lead.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' })}
+                    {lead.activite ? ` · ${lead.activite}` : ''}
+                  </p>
+                </div>
+                <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+              </div>
+              {lead.telephone && (
+                <div className="flex items-center gap-1">
+                  <a href={`tel:${lead.telephone}`} className="font-mono text-sm text-gray-700">{lead.telephone}</a>
+                  <CopyButton text={lead.telephone} />
+                </div>
+              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <StatutLeadSelect leadId={lead.id} value={lead.statut} />
+                <MobileNotes leadId={lead.id} value={lead.notes} nom={lead.nom} />
+              </div>
+              <CallTracker leadId={lead.id} appels={lead.appels ?? []} />
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop : tableau */}
+        <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
@@ -102,6 +154,11 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   <td className="px-4 py-3">
                     <Link href={`/leads/${lead.id}`} className="block hover:text-[#F5C800] transition-colors">
                       <span className="font-medium text-gray-900">{lead.nom}</span>
+                      {dort(lead) && (
+                        <span className="ml-2 text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                          😴 +48 h
+                        </span>
+                      )}
                       {lead.activite && <span className="block text-xs text-gray-500 mt-0.5">{lead.activite}</span>}
                     </Link>
                   </td>
@@ -143,6 +200,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   )

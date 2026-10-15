@@ -14,7 +14,13 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
   async function handleDelete() {
     if (!confirm(`Supprimer ${lead.nom} ? Cette action est irréversible.`)) return
     setDeleting(true)
-    await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      alert(data?.error ?? 'Suppression impossible.')
+      setDeleting(false)
+      return
+    }
     router.push('/leads')
     router.refresh()
   }
@@ -78,17 +84,6 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
         <Section title="Vente">
           <Row label="Offre souscrite"><span className="text-gray-900">{lead.offre_souscrite || '—'}</span></Row>
           <Row label="Coach assigné"><span className="text-gray-900">{lead.coach_assigne || '—'}</span></Row>
-        </Section>
-
-        <Section title="Relance">
-          <Row label="Date de relance">
-            {lead.date_relance
-              ? <span className={new Date(lead.date_relance) <= new Date() ? 'text-red-500' : 'text-gray-900'}>
-                  {new Date(lead.date_relance + 'T00:00:00').toLocaleDateString('fr-FR', { dateStyle: 'long' })}
-                </span>
-              : <Empty />}
-          </Row>
-          <Row label="Motif"><span className="text-gray-900">{lead.motif_relance || '—'}</span></Row>
         </Section>
 
         {lead.notes && (

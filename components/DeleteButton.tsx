@@ -12,7 +12,13 @@ export default function DeleteButton({ leadId, leadNom }: { leadId: string; lead
     e.stopPropagation()
     if (!confirm(`Supprimer ${leadNom} ?`)) return
     setLoading(true)
-    await fetch(`/api/leads/${leadId}`, { method: 'DELETE' })
+    const res = await fetch(`/api/leads/${leadId}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      alert(data?.error ?? 'Suppression impossible.')
+      setLoading(false)
+      return
+    }
     router.refresh()
   }
 
