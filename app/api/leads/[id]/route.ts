@@ -30,8 +30,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   return NextResponse.json(lead)
 }
 
+// Règle métier : un prospect ne se jette pas — minimum 7 tentatives d'appel
+// avant de pouvoir le supprimer.
+const MIN_APPELS_SUPPRESSION = 7
+
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const lead = await getLead(id)
+  if (!lead) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
+
+  const nbAppels = (lead.appels ?? []).length
+  if (nbAppels < MIN_APPELS_SUPPRESSION) {
+    return NextResponse.json(
+      { error: `Suppression impossible : ${nbAppels} appel${nbAppels !== 1 ? 's' : ''} sur ${MIN_APPELS_SUPPRESSION} minimum. On ne lâche pas un prospect avant de l'avoir appelé ${MIN_APPELS_SUPPRESSION} fois 💪` },
+      { status: 403 },
+    )
+  }
+
   await libererCreneauxDuLead(id) // ses créneaux coach redeviennent disponibles
   const ok = await deleteLead(id)
   if (!ok) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })

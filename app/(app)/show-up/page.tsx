@@ -10,7 +10,7 @@ import type { Lead } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
-type SearchParams = { relance?: string }
+type SearchParams = { relance?: string; q?: string }
 
 // Un prospect a « eu un RDV » s'il a une date de RDV ou une présence renseignée.
 // C'est le critère de routage automatique entre les deux sous-onglets Relances.
@@ -30,8 +30,16 @@ export default async function RdvRelancesPage({ searchParams }: { searchParams: 
   const params = await searchParams
   const ongletRelance = params.relance === 'post' ? 'post' : 'rappeler'
 
-  const leads = await getLeads()
+  let leads = await getLeads()
   const today = new Date().toISOString().split('T')[0]
+
+  // Recherche par nom ou téléphone (filtre les deux sections)
+  if (params.q) {
+    const q = params.q.toLowerCase()
+    leads = leads.filter(l =>
+      l.nom.toLowerCase().includes(q) || (l.telephone && l.telephone.includes(params.q!))
+    )
+  }
 
   // ── Section Rendez-vous : les "RDV pris" uniquement.
   // Un RDV passé non mis à jour reste ici (section dédiée) tant que son
@@ -76,6 +84,13 @@ export default async function RdvRelancesPage({ searchParams }: { searchParams: 
           <Link href="/leads/nouveau" className="btn-primary text-sm">+ Nouveau</Link>
         </div>
 
+        {/* Recherche */}
+        <form className="mb-4">
+          {params.relance && <input type="hidden" name="relance" value={params.relance} />}
+          <input name="q" defaultValue={params.q} type="search" className="input-field max-w-xs"
+            placeholder="Rechercher par nom ou téléphone…" />
+        </form>
+
         {rdvLeads.length === 0 ? (
           <div className="rounded-xl border border-gray-200 p-8 text-center bg-white">
             <p className="text-gray-500 text-sm">Aucun RDV en cours</p>
@@ -100,7 +115,7 @@ export default async function RdvRelancesPage({ searchParams }: { searchParams: 
         {/* Sous-onglets */}
         <div className="flex gap-2 mb-4">
           <Link
-            href="/show-up#relances"
+            href={`/show-up${params.q ? `?q=${encodeURIComponent(params.q)}` : ''}#relances`}
             scroll={false}
             className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
               ongletRelance === 'rappeler'
@@ -111,7 +126,7 @@ export default async function RdvRelancesPage({ searchParams }: { searchParams: 
             À rappeler ({aRappeler.length})
           </Link>
           <Link
-            href="/show-up?relance=post#relances"
+            href={`/show-up?relance=post${params.q ? `&q=${encodeURIComponent(params.q)}` : ''}#relances`}
             scroll={false}
             className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
               ongletRelance === 'post'

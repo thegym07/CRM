@@ -56,9 +56,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const vendus = filtered.filter(l => l.statut === 'Vendu').length
   const aRelancer = filtered.filter(l => l.statut === 'À relancer').length
 
-  // Relances du jour : toujours globales (indépendantes du filtre)
-  const today = new Date().toISOString().split('T')[0]
-  const relancesAujourdhui = all.filter(l => l.date_relance && l.date_relance <= today)
+  // ── À faire aujourd'hui (toujours global, indépendant du filtre) ──
+  const cleJour = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
+  const aujourdhui = cleJour(new Date().toISOString())
+
+  // RDV du jour
+  const rdvDuJour = all
+    .filter(l => l.statut === 'RDV pris' && l.date_rdv && cleJour(l.date_rdv) === aujourdhui)
+    .sort((a, b) => new Date(a.date_rdv!).getTime() - new Date(b.date_rdv!).getTime())
+
+  // Prospects qui dorment : jamais rappelés depuis plus de 48 h (dernier appel, sinon date d'ajout)
+  const DORMANT_MS = 48 * 3600 * 1000
+  const dernierContact = (l: (typeof all)[number]) => {
+    const appels = l.appels ?? []
+    return appels.length > 0 ? Math.max(...appels.map(a => new Date(a).getTime())) : new Date(l.created_at).getTime()
+  }
+  const dormants = all
+    .filter(l => (l.statut === 'Nouveau prospect' || l.statut === 'Contacté sans réponse') && Date.now() - dernierContact(l) > DORMANT_MS)
+    .sort((a, b) => dernierContact(a) - dernierContact(b))
+  const joursSans = (l: (typeof all)[number]) => Math.floor((Date.now() - dernierContact(l)) / 86400000)
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
@@ -91,52 +107,97 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <StatCard label="À relancer" value={aRelancer} color="red" />
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Relances du jour
-            {relancesAujourdhui.length > 0 && (
-              <span className="ml-2 text-sm bg-red-100 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">
-                {relancesAujourdhui.length}
-              </span>
-            )}
-          </h2>
-          <Link href="/leads" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-            Voir tout →
-          </Link>
+      {/* À faire aujourd'hui */}
+      <div className="space-y-6">
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-900">
+              📅 RDV du jour
+              {rdvDuJour.length > 0 && (
+                <span className="ml-2 text-sm bg-[#F5C800]/20 text-yellow-800 border border-[#F5C800] px-2 py-0.5 rounded-full">
+                  {rdvDuJour.length}
+                </span>
+              )}
+            </h2>
+            <Link href="/show-up" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
+              Voir tout →
+            </Link>
+          </div>
+          {rdvDuJour.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
+              <p className="text-gray-500 text-sm">Aucun RDV aujourd'hui</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {rdvDuJour.map(lead => (
+                <Link key={lead.id} href={`/leads/${lead.id}`}
+                  className="flex items-center gap-4 bg-white hover:bg-gray-50 rounded-xl border border-gray-200 p-4 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-[#F5C800]/20 flex items-center justify-center text-yellow-700 font-semibold text-sm flex-shrink-0">
+                    {new Date(lead.date_rdv!).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }).replace(':', 'h')}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 text-sm">{lead.nom}</p>
+                    {lead.activite && <p className="text-xs text-gray-500 truncate">{lead.activite}</p>}
+                  </div>
+                  {lead.telephone && (
+                    <a href={`tel:${lead.telephone}`} onClick={e => e.stopPropagation()}
+                      className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-400 transition-colors flex-shrink-0 bg-white">
+                      📞
+                    </a>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
-        {relancesAujourdhui.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <p className="text-gray-500 text-sm">Aucune relance prévue aujourd'hui 🎉</p>
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-900">
+              😴 Prospects qui dorment
+              {dormants.length > 0 && (
+                <span className="ml-2 text-sm bg-red-100 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">
+                  {dormants.length}
+                </span>
+              )}
+            </h2>
+            <Link href="/leads" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
+              Voir tout →
+            </Link>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {relancesAujourdhui.slice(0, 5).map((lead) => (
-              <Link key={lead.id} href={`/leads/${lead.id}`}
-                className="flex items-center gap-4 bg-white hover:bg-gray-50 rounded-xl border border-gray-200 p-4 transition-colors">
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500 font-semibold text-sm flex-shrink-0">
-                  {lead.nom.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 text-sm">{lead.nom}</p>
-                  {lead.motif_relance && <p className="text-xs text-gray-500 truncate">{lead.motif_relance}</p>}
-                </div>
-                {lead.telephone && (
-                  <a href={`tel:${lead.telephone}`} onClick={e => e.stopPropagation()}
-                    className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-400 transition-colors flex-shrink-0 bg-white">
-                    📞 Appeler
-                  </a>
-                )}
-              </Link>
-            ))}
-            {relancesAujourdhui.length > 5 && (
-              <Link href="/relances" className="block text-center text-sm text-gray-500 hover:text-gray-900 py-3 transition-colors">
-                + {relancesAujourdhui.length - 5} autres relances
-              </Link>
-            )}
-          </div>
-        )}
+          <p className="text-xs text-gray-400 -mt-1 mb-3">Jamais rappelés depuis plus de 48 h — chaque lead coûte de la pub, on ne le laisse pas refroidir.</p>
+          {dormants.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
+              <p className="text-gray-500 text-sm">Personne ne dort — tout le monde a été rappelé 🎉</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {dormants.slice(0, 5).map(lead => (
+                <Link key={lead.id} href={`/leads/${lead.id}`}
+                  className="flex items-center gap-4 bg-white hover:bg-gray-50 rounded-xl border border-red-200 p-4 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500 font-semibold text-sm flex-shrink-0">
+                    {lead.nom.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 text-sm">{lead.nom}</p>
+                    <p className="text-xs text-red-500 font-semibold">{joursSans(lead)} jour{joursSans(lead) > 1 ? 's' : ''} sans appel · {(lead.appels ?? []).length} appel{(lead.appels ?? []).length !== 1 ? 's' : ''} passé{(lead.appels ?? []).length !== 1 ? 's' : ''}</p>
+                  </div>
+                  {lead.telephone && (
+                    <a href={`tel:${lead.telephone}`} onClick={e => e.stopPropagation()}
+                      className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-400 transition-colors flex-shrink-0 bg-white">
+                      📞 Appeler
+                    </a>
+                  )}
+                </Link>
+              ))}
+              {dormants.length > 5 && (
+                <Link href="/leads" className="block text-center text-sm text-gray-500 hover:text-gray-900 py-3 transition-colors">
+                  + {dormants.length - 5} autres
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
