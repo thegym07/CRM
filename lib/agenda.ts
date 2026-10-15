@@ -6,6 +6,7 @@ export type Coach = {
   couleur: string
   email: string | null
   ical_token: string
+  ical_import_url: string | null  // lien privé de SON agenda (Google/iPhone) → import des dispos
   actif: boolean
   created_at: string
 }
@@ -17,6 +18,7 @@ export type Creneau = {
   fin: string     // ISO
   lead_id: string | null   // null = dispo libre, renseigné = RDV bloqué
   lead_nom: string | null
+  source: 'crm' | 'import' // import = vient de l'agenda perso du coach
   created_at: string
 }
 
@@ -40,6 +42,13 @@ export async function retirerCoach(id: string): Promise<boolean> {
   await supabase.from('creneaux').delete().eq('coach_id', id).is('lead_id', null)
   const { error } = await supabase.from('coaches').update({ actif: false }).eq('id', id)
   if (error) { console.error('retirerCoach:', error.message); return false }
+  return true
+}
+
+/** Enregistre (ou efface) le lien d'agenda perso d'un coach. */
+export async function setCoachImportUrl(id: string, url: string | null): Promise<boolean> {
+  const { error } = await supabase.from('coaches').update({ ical_import_url: url }).eq('id', id)
+  if (error) { console.error('setCoachImportUrl:', error.message); return false }
   return true
 }
 

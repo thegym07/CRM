@@ -163,18 +163,21 @@ export function GestionCoachs({ coaches, baseUrl }: { coaches: Coach[]; baseUrl:
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <p className="label-condensed mb-3">Coachs</p>
 
-      <div className="space-y-3 mb-4">
+      <div className="space-y-4 mb-4">
         {coaches.map(c => (
-          <div key={c.id} className="flex items-center gap-3 flex-wrap">
-            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: c.couleur }} />
-            <span className="text-sm font-medium text-gray-900 w-24">{c.nom}</span>
-            <span className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 min-w-0">
-              <span className="text-[11px] text-gray-500 truncate max-w-[220px]">
-                {baseUrl}/api/calendar/{c.ical_token}.ics
+          <div key={c.id} className="border border-gray-100 rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: c.couleur }} />
+              <span className="text-sm font-medium text-gray-900 w-24">{c.nom}</span>
+              <span className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 min-w-0">
+                <span className="text-[11px] text-gray-500 truncate max-w-[220px]">
+                  {baseUrl}/api/calendar/{c.ical_token}.ics
+                </span>
+                <CopyButton text={`${baseUrl}/api/calendar/${c.ical_token}.ics`} />
               </span>
-              <CopyButton text={`${baseUrl}/api/calendar/${c.ical_token}.ics`} />
-            </span>
-            <button onClick={() => retirer(c)} className="text-gray-300 hover:text-red-500 text-sm">✕</button>
+              <button onClick={() => retirer(c)} className="text-gray-300 hover:text-red-500 text-sm">✕</button>
+            </div>
+            <LienAgendaCoach coach={c} />
           </div>
         ))}
         {coaches.length === 0 && <p className="text-sm text-gray-400">Aucun coach — ajoute le premier ci-dessous.</p>}
@@ -195,11 +198,66 @@ export function GestionCoachs({ coaches, baseUrl }: { coaches: Coach[]; baseUrl:
       </div>
 
       <p className="text-[11px] text-gray-400 mt-3 leading-relaxed">
-        📱 <strong>Agenda du coach sur son téléphone</strong> : copier son lien ci-dessus, puis
+        📱 <strong>Voir ses RDV THE GYM dans son téléphone</strong> : copier son lien ci-dessus, puis
         — iPhone : Réglages → Apps → Calendrier → Comptes → Ajouter un compte → Autre → Ajouter un abonnement, coller le lien.
         — Google Agenda : Paramètres → Ajouter un agenda → À partir d'une URL, coller le lien.
-        Ses RDV THE GYM apparaîtront automatiquement (nom du prospect + téléphone).
+        Ses RDV apparaîtront automatiquement (nom du prospect + téléphone).
       </p>
+      <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
+        🔄 <strong>Ses dispos gérées depuis SON agenda</strong> : colle le lien privé de son agenda dans le champ sous son nom.
+        Où le trouver ? — Google Agenda (sur ordinateur) : Paramètres → son agenda → « Adresse secrète au format iCal », copier.
+        — iPhone/iCloud : www.icloud.com → Calendrier → icône de partage de son calendrier → « Calendrier public », copier le lien webcal.
+        Ensuite, chaque événement nommé <strong>« Dispo »</strong> dans son agenda devient automatiquement des créneaux réservables d'1 h ici
+        (ex. « Dispo » de 9h à 12h = 3 créneaux). Les récurrences (« Dispo » tous les mardis) fonctionnent. S'il supprime l'événement, les créneaux libres disparaissent ; les créneaux déjà réservés restent.
+      </p>
+    </div>
+  )
+}
+
+// ── Lien de l'agenda perso du coach → import automatique de ses dispos ──
+function LienAgendaCoach({ coach }: { coach: Coach }) {
+  const router = useRouter()
+  const [url, setUrl] = useState(coach.ical_import_url ?? '')
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  const connecte = !!coach.ical_import_url
+
+  async function enregistrer() {
+    setSaving(true)
+    setMsg(null)
+    const res = await fetch(`/api/coaches/${coach.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ical_import_url: url }),
+    })
+    setSaving(false)
+    if (!res.ok) {
+      const d = await res.json().catch(() => null)
+      setMsg(d?.error ?? 'Erreur')
+      return
+    }
+    setMsg(url.trim() ? '✓ Connecté — ses événements « Dispo » deviennent des créneaux' : '✓ Déconnecté')
+    router.refresh()
+  }
+
+  return (
+    <div className="pl-6">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={`text-[11px] font-semibold ${connecte ? 'text-green-600' : 'text-gray-400'}`}>
+          {connecte ? '🔗 Agenda connecté' : 'Son agenda (Google / iPhone) :'}
+        </span>
+        <input
+          value={url}
+          onChange={e => setUrl(e.target.value)}
+          placeholder="Coller ici le lien privé de son agenda…"
+          className="input-field !w-64 text-xs"
+        />
+        <button onClick={enregistrer} disabled={saving || url === (coach.ical_import_url ?? '')}
+          className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-500 disabled:opacity-40">
+          {saving ? '…' : 'Enregistrer'}
+        </button>
+      </div>
+      {msg && <p className="text-[11px] mt-1 text-gray-500">{msg}</p>}
     </div>
   )
 }
