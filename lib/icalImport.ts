@@ -5,6 +5,9 @@ import type { Coach } from './agenda'
 // ── Import des disponibilités depuis l'agenda perso du coach (Google / iPhone) ──
 // Convention : tout événement dont le titre contient « dispo » (peu importe la
 // casse) est importé comme créneaux réservables, découpés en tranches d'1 h.
+// TOUT AUTRE événement de son agenda (coaching ailleurs, perso…) annule
+// automatiquement les créneaux libres qu'il chevauche : le coach gère tout
+// depuis son agenda, sans jamais passer par le CRM.
 // Les créneaux importés non réservés qui disparaissent de l'agenda sont retirés ;
 // les créneaux déjà réservés par une cliente ne sont jamais touchés.
 
@@ -41,30 +44,44 @@ export async function syncCoachDispos(coach: Coach): Promise<void> {
     const maintenant = new Date()
     const horizon = new Date(Date.now() + HORIZON_JOURS * 86400000)
     const slots: Fenetre[] = []
+    const occupes: Fenetre[] = []   // tous ses AUTRES événements = indisponible
 
     for (const ev of Object.values(data)) {
       if (!ev || (ev as { type?: string }).type !== 'VEVENT') continue
       const e = ev as {
-        summary?: unknown; start?: Date; end?: Date
+        summary?: unknown; start?: Date; end?: Date; status?: string
         rrule?: { between: (a: Date, b: Date, inc?: boolean) => Date[] }
         exdate?: Record<string, Date>
       }
-      if (!estDispo(e.summary) || !e.start || !e.end) continue
+      if (!e.start || !e.end) continue
+      if (typeof e.status === 'string' && e.status.toUpperCase() === 'CANCELLED') continue
+      const dispo = estDispo(e.summary)
       const dureeMs = e.end.getTime() - e.start.getTime()
 
+      // Occurrences de l'événement dans la fenêtre (récurrences déroulées)
+      const occurrences: Fenetre[] = []
       if (e.rrule) {
-        // Événement récurrent (ex. « Dispo » chaque mardi) : on déroule les occurrences
         const exclues = new Set(Object.values(e.exdate ?? {}).map(d => d.getTime()))
         for (const occ of e.rrule.between(maintenant, horizon, true)) {
           if (exclues.has(occ.getTime())) continue
-          decoupe({ debut: occ, fin: new Date(occ.getTime() + dureeMs) }, slots)
+          occurrences.push({ debut: occ, fin: new Date(occ.getTime() + dureeMs) })
         }
-      } else if (e.start >= maintenant && e.start <= horizon) {
-        decoupe({ debut: e.start, fin: e.end }, slots)
+      } else if (e.end > maintenant && e.start <= horizon) {
+        occurrences.push({ debut: e.start, fin: e.end })
+      }
+
+      for (const occ of occurrences) {
+        if (dispo) decoupe(occ, slots)
+        else occupes.push(occ)
       }
     }
 
-    const voulus = new Map(slots.map(s => [s.debut.toISOString(), s]))
+    // Un créneau « Dispo » chevauché par n'importe quel autre événement saute
+    const chevauche = (s: Fenetre) =>
+      occupes.some(o => s.debut.getTime() < o.fin.getTime() && o.debut.getTime() < s.fin.getTime())
+    const disponibles = slots.filter(s => !chevauche(s))
+
+    const voulus = new Map(disponibles.map(s => [s.debut.toISOString(), s]))
 
     // Créneaux importés existants (libres, à venir) de ce coach
     const { data: existants } = await supabase
