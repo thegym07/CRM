@@ -95,12 +95,16 @@ export default async function RentabilitePage() {
     return { pub: jours * PUB_PAR_JOUR, salaire: SALAIRE_MENSUEL, com: comParMois.get(key) ?? 0 }
   }
 
-  // ── Taux par mois (RDV pointés / ventes) sur la date du RDV ──
+  // ── Taux par mois (RDV pointés / ventes) ──
+  // Les présences viennent des commissions FIGÉES (une ligne = un RDV présent) :
+  // les fiches prospects sont modifiées après coup (relances, RDV repris) et
+  // sous-comptaient les présents. Les absents restent lus sur les fiches.
+  const statutParLead = new Map(leads.map(l => [l.id, l.statut]))
   const tauxDe = (key: string) => {
-    const duMois = leads.filter(l => l.rdv_honore !== null && l.date_rdv && cleMois(l.date_rdv) === key)
-    const presents = duMois.filter(l => l.rdv_honore === true)
-    const venduPresents = presents.filter(l => l.statut === 'Vendu')
-    return { rdv: duMois.length, presents: presents.length, ventes: venduPresents.length }
+    const presents = commissions.filter(c => cleMois(c.date_rdv) === key)
+    const absents = leads.filter(l => l.rdv_honore === false && l.date_rdv && cleMois(l.date_rdv) === key)
+    const venduPresents = presents.filter(c => c.lead_id && statutParLead.get(c.lead_id) === 'Vendu')
+    return { rdv: presents.length + absents.length, presents: presents.length, ventes: venduPresents.length }
   }
 
   // ── Mois en cours ──

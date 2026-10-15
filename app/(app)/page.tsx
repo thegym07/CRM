@@ -24,15 +24,32 @@ function debutPeriode(periode: string): Date | null {
   return null // "Tout"
 }
 
+// Clé "YYYY-MM" en heure française
+const cleMois = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' }).slice(0, 7)
+
+function labelMois(key: string): string {
+  const [y, m] = key.split('-').map(Number)
+  const label = new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams
   const periode = params.periode ?? ''
 
   const all = await getLeads()
 
-  // Stats filtrées sur la date d'ajout du prospect
+  // Historique : un filtre par mois où des prospects sont entrés dans l'entonnoir
+  const moisDisponibles = Array.from(new Set(all.map(l => cleMois(l.created_at)))).sort().reverse()
+
+  // Stats filtrées sur la date d'ajout du prospect ; les compteurs reflètent
+  // la phase de l'entonnoir où chacun est descendu depuis (statut actuel).
+  const estMois = /^\d{4}-\d{2}$/.test(periode)
   const debut = debutPeriode(periode)
-  const filtered = debut ? all.filter(l => new Date(l.created_at) >= debut) : all
+  const filtered = estMois
+    ? all.filter(l => cleMois(l.created_at) === periode)
+    : debut ? all.filter(l => new Date(l.created_at) >= debut) : all
 
   const total = filtered.length
   const nouveaux = filtered.filter(l => l.statut === 'Nouveau prospect').length
@@ -52,7 +69,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       {/* Filtres de période */}
       <div className="flex gap-2 flex-wrap mb-5">
-        {PERIODES.map(p => {
+        {[...PERIODES, ...moisDisponibles.map(m => ({ key: m, label: labelMois(m) }))].map(p => {
           const active = periode === p.key
           return (
             <Link key={p.label} href={`/${p.key ? `?periode=${p.key}` : ''}`}
