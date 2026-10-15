@@ -48,7 +48,10 @@ const joursDansMois = (key: string) => {
 // Date de la vente : la date figée au passage en Vendu (fallback anciens : RDV puis maj)
 const dateVente = (l: Lead) => l.vendu_le ?? l.date_rdv ?? l.updated_at
 
-export default async function RentabilitePage() {
+type SearchParams = { mois?: string }
+
+export default async function RentabilitePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams
   const [leads, commissions] = await Promise.all([getLeads(), getCommissions()])
   const moisCourant = cleMois(new Date().toISOString())
   const aujourdhui = new Date().getDate()
@@ -107,12 +110,16 @@ export default async function RentabilitePage() {
     return { rdv: presents.length + absents.length, presents: presents.length, ventes: venduPresents.length }
   }
 
-  // ── Mois en cours ──
-  const revM = revenus.get(moisCourant) ?? 0
-  const depM = depensesDe(moisCourant)
+  // ── Mois affiché en grand : le mois en cours, ou celui cliqué dans l'historique ──
+  const moisSel = params.mois && /^\d{4}-\d{2}$/.test(params.mois) && tousLesMois.includes(params.mois)
+    ? params.mois : moisCourant
+  const estCourant = moisSel === moisCourant
+  const joursSel = estCourant ? aujourdhui : joursDansMois(moisSel)
+  const revM = revenus.get(moisSel) ?? 0
+  const depM = depensesDe(moisSel)
   const totalDepM = depM.pub + depM.salaire + depM.com
   const resultatM = revM - totalDepM
-  const tauxM = tauxDe(moisCourant)
+  const tauxM = tauxDe(moisSel)
 
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
@@ -152,17 +159,24 @@ export default async function RentabilitePage() {
 
       {/* Mois en cours */}
       <div className={`rounded-2xl border-2 p-6 shadow-sm mb-4 bg-white ${resultatM >= 0 ? 'border-green-500' : 'border-red-400'}`}>
-        <p className="label-condensed mb-1">{labelMois(moisCourant)} — mois en cours</p>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
+          <p className="label-condensed">{labelMois(moisSel)}{estCourant ? ' — mois en cours' : ''}</p>
+          {!estCourant && (
+            <Link href="/rentabilite" className="text-xs text-gray-500 hover:text-gray-900 underline">
+              ← Revenir au mois en cours
+            </Link>
+          )}
+        </div>
         <div className="flex items-end gap-3 flex-wrap">
           <p className={`text-5xl font-bold ${resultatM >= 0 ? 'text-green-600' : 'text-red-500'}`} style={{ letterSpacing: '-0.03em' }}>
             {resultatM >= 0 ? '+' : ''}{euros(resultatM)}
           </p>
-          <p className="text-sm text-gray-500 pb-1.5">{resultatM >= 0 ? 'On gagne de l’argent 🎉' : 'On en perd pour l’instant'}</p>
+          <p className="text-sm text-gray-500 pb-1.5">{resultatM >= 0 ? 'On gagne de l’argent 🎉' : estCourant ? 'On en perd pour l’instant' : 'Mois dans le rouge'}</p>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1 text-sm max-w-md">
           <span className="text-gray-500">Revenus (ventes + mensualités)</span>
           <span className="font-semibold text-gray-900 text-right">{euros(revM)}</span>
-          <span className="text-gray-500">Pub ({PUB_PAR_JOUR} € × {aujourdhui} j)</span>
+          <span className="text-gray-500">Pub ({PUB_PAR_JOUR} € × {joursSel} j)</span>
           <span className="font-semibold text-gray-900 text-right">−{euros(depM.pub)}</span>
           <span className="text-gray-500">Salaire commerciale</span>
           <span className="font-semibold text-gray-900 text-right">−{euros(depM.salaire)}</span>
@@ -174,12 +188,12 @@ export default async function RentabilitePage() {
       {/* Axes d'amélioration */}
       <div className="grid grid-cols-2 gap-3 mb-8">
         <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <p className="label-condensed mb-1">RDV pointés ce mois</p>
+          <p className="label-condensed mb-1">RDV pointés {estCourant ? 'ce mois' : `en ${labelMois(moisSel).toLowerCase()}`}</p>
           <p className="text-3xl font-bold text-gray-900">{pct(tauxM.presents, tauxM.rdv)}</p>
           <p className="text-xs text-gray-400 mt-0.5">{tauxM.presents} présents / {tauxM.rdv} RDV</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <p className="label-condensed mb-1">Taux de vente ce mois</p>
+          <p className="label-condensed mb-1">Taux de vente {estCourant ? 'ce mois' : `en ${labelMois(moisSel).toLowerCase()}`}</p>
           <p className="text-3xl font-bold text-gray-900">{pct(tauxM.ventes, tauxM.presents)}</p>
           <p className="text-xs text-gray-400 mt-0.5">{tauxM.ventes} ventes / {tauxM.presents} présents</p>
         </div>
@@ -208,12 +222,13 @@ export default async function RentabilitePage() {
               const t = tauxDe(key)
               const detail = detailMois.get(key) ?? []
               return (
-                <tr key={key} className={`hover:bg-gray-50 align-top ${key === moisCourant ? 'bg-yellow-50' : ''}`}>
+                <tr key={key} className={`hover:bg-gray-50 align-top ${key === moisSel ? 'bg-yellow-50' : ''}`}>
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {detail.length > 0 ? (
                       <details>
                         <summary className="cursor-pointer select-none">
-                          {labelMois(key)} <span className="text-xs text-gray-400 font-normal">(détail)</span>
+                          <Link href={`/rentabilite?mois=${key}`} className="hover:text-[#F5C800] underline decoration-gray-300 underline-offset-2">{labelMois(key)}</Link>
+                          {' '}<span className="text-xs text-gray-400 font-normal">(détail)</span>
                         </summary>
                         <ul className="mt-2 space-y-1">
                           {detail.map((d, i) => (
@@ -226,7 +241,7 @@ export default async function RentabilitePage() {
                         </ul>
                       </details>
                     ) : (
-                      labelMois(key)
+                      <Link href={`/rentabilite?mois=${key}`} className="hover:text-[#F5C800] underline decoration-gray-300 underline-offset-2">{labelMois(key)}</Link>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-900">{euros(rev)}</td>
