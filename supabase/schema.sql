@@ -117,3 +117,7 @@ CREATE TRIGGER leads_updated_at
 CREATE INDEX IF NOT EXISTS leads_statut_idx ON leads(statut);
 CREATE INDEX IF NOT EXISTS leads_date_relance_idx ON leads(date_relance);
 CREATE INDEX IF NOT EXISTS leads_created_at_idx ON leads(created_at DESC);
+
+-- Import des dispos depuis l'agenda perso du coach (Google / iPhone)
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS ical_import_url TEXT;
+ALTER TABLE creneaux ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'crm';

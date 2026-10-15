@@ -1,4 +1,5 @@
 import { getCoaches, getCreneaux, type Creneau } from '@/lib/agenda'
+import { syncTousLesCoachs } from '@/lib/icalImport'
 import Link from 'next/link'
 import { AjouterDispo, SlotChip, GestionCoachs } from './AgendaClient'
 
@@ -30,10 +31,11 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const jours = Array.from({ length: 7 }, (_, i) => addJours(lundi, i))
   const finSemaine = addJours(lundi, 7)
 
-  const [coaches, creneaux] = await Promise.all([
-    getCoaches(),
-    getCreneaux(lundi.toISOString(), finSemaine.toISOString()),
-  ])
+  // 1. Importe les dispos depuis les agendas perso des coachs (Google / iPhone)
+  const coaches = await getCoaches()
+  await syncTousLesCoachs(coaches)
+  // 2. Puis charge la semaine affichée
+  const creneaux = await getCreneaux(lundi.toISOString(), finSemaine.toISOString())
   const coachDe = (id: string) => coaches.find(c => c.id === id)
 
   // Regroupe les créneaux par jour (heure française)

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { addDispo, getCreneauxLibres, getCoaches } from '@/lib/agenda'
+import { syncTousLesCoachs } from '@/lib/icalImport'
 
 // GET /api/creneaux : dispos libres à venir, avec le nom du coach (sélecteur de réservation)
 export async function GET() {
-  const [libres, coaches] = await Promise.all([getCreneauxLibres(), getCoaches()])
+  const coaches = await getCoaches()
+  await syncTousLesCoachs(coaches) // dispos fraîches depuis les agendas perso
+  const libres = await getCreneauxLibres()
   const nomDe = (id: string) => coaches.find(c => c.id === id)?.nom ?? '?'
   return NextResponse.json(libres.map(c => ({ ...c, coach_nom: nomDe(c.coach_id) })))
 }
