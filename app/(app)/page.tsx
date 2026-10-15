@@ -130,22 +130,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           ) : (
             <div className="space-y-2">
               {rdvDuJour.map(lead => (
-                <Link key={lead.id} href={`/leads/${lead.id}`}
+                <div key={lead.id}
                   className="flex items-center gap-4 bg-white hover:bg-gray-50 rounded-xl border border-gray-200 p-4 transition-colors">
                   <div className="w-10 h-10 rounded-full bg-[#F5C800]/20 flex items-center justify-center text-yellow-700 font-semibold text-sm flex-shrink-0">
                     {new Date(lead.date_rdv!).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }).replace(':', 'h')}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm">{lead.nom}</p>
+                    <Link href={`/leads/${lead.id}`} className="font-medium text-gray-900 text-sm hover:text-[#F5C800]">{lead.nom}</Link>
                     {lead.activite && <p className="text-xs text-gray-500 truncate">{lead.activite}</p>}
                   </div>
                   {lead.telephone && (
-                    <a href={`tel:${lead.telephone}`} onClick={e => e.stopPropagation()}
+                    <a href={`tel:${lead.telephone}`}
                       className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-400 transition-colors flex-shrink-0 bg-white">
                       📞
                     </a>
                   )}
-                </Link>
+                </div>
               ))}
             </div>
           )}
@@ -173,22 +173,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           ) : (
             <div className="space-y-2">
               {dormants.slice(0, 5).map(lead => (
-                <Link key={lead.id} href={`/leads/${lead.id}`}
+                <div key={lead.id}
                   className="flex items-center gap-4 bg-white hover:bg-gray-50 rounded-xl border border-red-200 p-4 transition-colors">
                   <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500 font-semibold text-sm flex-shrink-0">
                     {lead.nom.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm">{lead.nom}</p>
+                    <Link href={`/leads/${lead.id}`} className="font-medium text-gray-900 text-sm hover:text-[#F5C800]">{lead.nom}</Link>
                     <p className="text-xs text-red-500 font-semibold">{joursSans(lead)} jour{joursSans(lead) > 1 ? 's' : ''} sans appel · {(lead.appels ?? []).length} appel{(lead.appels ?? []).length !== 1 ? 's' : ''} passé{(lead.appels ?? []).length !== 1 ? 's' : ''}</p>
                   </div>
                   {lead.telephone && (
-                    <a href={`tel:${lead.telephone}`} onClick={e => e.stopPropagation()}
+                    <a href={`tel:${lead.telephone}`}
                       className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-400 transition-colors flex-shrink-0 bg-white">
                       📞 Appeler
                     </a>
                   )}
-                </Link>
+                </div>
               ))}
               {dormants.length > 5 && (
                 <Link href="/leads" className="block text-center text-sm text-gray-500 hover:text-gray-900 py-3 transition-colors">
