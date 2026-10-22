@@ -183,7 +183,7 @@ function Bilan() {
               🎁 Bilan offert · 3 minutes
             </p>
             <h1 className="text-[52px] leading-[0.95] text-black" style={title}>
-              Vous stagnez ?
+              Vous stagnez&nbsp;?
             </h1>
             <p className="text-[17px] leading-relaxed text-gray-700">
               Répondez à ces quelques questions pour découvrir <span className="font-bold text-black">vos erreurs</span>,{' '}
@@ -579,7 +579,7 @@ function Result({
 
       {/* ③ Les 2 options */}
       <section id="options" className="mt-12 scroll-mt-20">
-        <StepTitle n={3}>Comment le mettre en place ?</StepTitle>
+        <StepTitle n={3}>Comment le mettre en place&nbsp;?</StepTitle>
         <p className="mt-3 text-[15px] leading-relaxed text-gray-600">
           {name ? `${name}, vous` : 'Vous'} savez maintenant ce qui vous bloque et ce que vous devez changer. Le plus dur n’est
           pas de savoir quoi faire : c’est de le faire, semaine après semaine, avec votre vie à côté. Vous avez 2 options :
