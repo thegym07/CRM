@@ -1,7 +1,7 @@
 import { getReglages } from '@/lib/reglages'
 import { getCoaches } from '@/lib/agenda'
 import { emailConfigure } from '@/lib/email'
-import { EmailProspects, EmailCoachs } from './ReglagesClient'
+import { EmailProspects, EmailCoachs, AjouterContact } from './ReglagesClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,11 +31,7 @@ export default async function ReglagesPage() {
         coaches={coaches.map(c => ({ id: c.id, nom: c.nom, couleur: c.couleur, email: c.email ?? '' }))}
       />
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
-        💡 <strong>Pour que les e-mails n’arrivent jamais en spam</strong> : chaque destinataire ajoute l’adresse de la salle
-        à ses contacts, et si le premier e-mail tombe dans « Promotions » ou « Spam », il le déplace dans la boîte principale.
-        Gmail retient le choix pour tous les suivants.
-      </div>
+      <AjouterContact adresse={process.env.GMAIL_USER ?? 'thegymwk@gmail.com'} />
     </div>
   )
 }

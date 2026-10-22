@@ -154,8 +154,76 @@ function EmailCoach({ coach }: { coach: CoachLite }) {
         className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-500 disabled:opacity-40">
         Enregistrer
       </button>
+      {saved && <BoutonTest email={saved} />}
       {!saved && <span className="text-[11px] text-yellow-700">pas d’adresse → pas d’e-mail</span>}
       {msg && <span className="text-xs text-gray-500">{msg}</span>}
+    </div>
+  )
+}
+
+// ── Guide : ajouter THE GYM aux contacts (pour ne jamais tomber en spam) ──
+export function AjouterContact({ adresse }: { adresse: string }) {
+  const [copie, setCopie] = useState(false)
+  const [plateforme, setPlateforme] = useState<'iphone' | 'gmail-tel' | 'ordi'>('iphone')
+
+  const ETAPES: Record<typeof plateforme, string[]> = {
+    iphone: [
+      'Ouvre l’e-mail de test reçu de THE GYM dans l’app Mail.',
+      'Touche le nom « THE GYM » tout en haut du message.',
+      'Touche « Créer un nouveau contact », puis « OK ».',
+    ],
+    'gmail-tel': [
+      'Ouvre l’e-mail de test reçu de THE GYM dans l’app Gmail.',
+      'Touche la pastille ronde (photo ou initiale) à côté de « THE GYM ».',
+      'Touche « Ajouter aux contacts » (icône bonhomme avec un +), puis « Enregistrer ».',
+    ],
+    ordi: [
+      'Ouvre l’e-mail de test reçu de THE GYM sur gmail.com.',
+      'Passe la souris sur le nom « THE GYM » en haut du message.',
+      'Clique sur l’icône « Ajouter aux contacts » (bonhomme avec un +).',
+    ],
+  }
+
+  return (
+    <div className="rounded-2xl border-2 border-[#F5C800] bg-white p-5 shadow-sm space-y-4">
+      <div>
+        <p className="font-semibold text-gray-900">📇 Important : ajouter THE GYM à ses contacts</p>
+        <p className="text-sm text-gray-500 mt-0.5">
+          À faire <strong>une seule fois</strong> par la commerciale et par chaque coach. Une adresse enregistrée dans les contacts
+          est reconnue comme fiable par la messagerie : les notifications arrivent dans la boîte principale, pas en spam.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-sm font-mono bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-800">{adresse}</span>
+        <button type="button"
+          onClick={async () => { await navigator.clipboard.writeText(adresse); setCopie(true); setTimeout(() => setCopie(false), 2000) }}
+          className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-500">
+          {copie ? '✓ Copiée' : 'Copier l’adresse'}
+        </button>
+      </div>
+
+      <div>
+        <p className="text-sm text-gray-700 mb-2">
+          Le plus simple : clique sur <strong>« Envoyer un e-mail test »</strong> à côté de ton adresse (plus haut), puis :
+        </p>
+        <div className="flex gap-2 flex-wrap mb-3">
+          {([['iphone', '📱 iPhone (Mail)'], ['gmail-tel', '📱 App Gmail'], ['ordi', '💻 Ordinateur']] as const).map(([k, label]) => (
+            <button key={k} type="button" onClick={() => setPlateforme(k)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border ${plateforme === k ? 'bg-[#F5C800] text-black border-[#F5C800]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <ol className="list-decimal pl-5 space-y-1.5 text-sm text-gray-700">
+          {ETAPES[plateforme].map((e, i) => <li key={i}>{e}</li>)}
+        </ol>
+      </div>
+
+      <p className="text-xs text-gray-500 border-t border-gray-100 pt-3">
+        L’e-mail est arrivé dans « Promotions » ou « Spam » ? Ouvre-le et touche <strong>« Déplacer vers Principale »</strong>
+        (ou <strong>« Signaler comme non-spam »</strong>). La messagerie retient ce choix pour tous les suivants.
+      </p>
     </div>
   )
 }

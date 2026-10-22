@@ -84,7 +84,7 @@ export default async function RapportPage({ searchParams }: { searchParams: Prom
 
       {/* Saisie manuelle */}
       <section className="mb-4">
-        <RapportForm date={selectedDate} initial={reportDuJour} />
+        <RapportForm key={selectedDate} date={selectedDate} initial={reportDuJour} />
       </section>
 
       {/* Séances muscu accompagnées */}
