@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { type Lead } from '@/lib/supabase'
 import LeadForm from '@/components/LeadForm'
 import CallTracker from '@/components/CallTracker'
+import PasInteresseButton from '@/components/PasInteresseButton'
 
 export default function LeadDetailClient({ lead }: { lead: Lead }) {
   const router = useRouter()
@@ -43,7 +44,8 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
             Ajouté le {new Date(lead.created_at).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-end items-center">
+          <PasInteresseButton leadId={lead.id} leadNom={lead.nom} redirect="/leads" />
           <button onClick={() => setEditing(true)}
             className="btn-primary text-sm">
             Modifier

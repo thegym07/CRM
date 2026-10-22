@@ -4,6 +4,7 @@ import CopyButton from '@/components/CopyButton'
 import StatutLeadSelect from '@/components/StatutLeadSelect'
 import InlineNotes from '@/components/InlineNotes'
 import DeleteButton from '@/components/DeleteButton'
+import PasInteresseButton from '@/components/PasInteresseButton'
 import CallTracker from '@/components/CallTracker'
 import MobileNotes from '@/components/MobileNotes'
 
@@ -116,7 +117,10 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     {lead.activite ? ` · ${lead.activite}` : ''}
                   </p>
                 </div>
-                <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+                <div className="flex items-center gap-1">
+                  <PasInteresseButton leadId={lead.id} leadNom={lead.nom} />
+                  <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+                </div>
               </div>
               {lead.telephone && (
                 <div className="flex items-center gap-1">
@@ -193,7 +197,10 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     <MobileNotes leadId={lead.id} value={lead.notes} nom={lead.nom} />
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+                    <div className="flex items-center justify-center gap-1">
+                      <PasInteresseButton leadId={lead.id} leadNom={lead.nom} />
+                      <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+                    </div>
                   </td>
                 </tr>
               ))}

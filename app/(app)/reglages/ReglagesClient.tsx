@@ -27,83 +27,83 @@ async function sauver(body: Record<string, unknown>) {
   return { ok: res.ok, erreur: data?.error as string | undefined }
 }
 
-function BoutonTest({ telephone }: { telephone: string }) {
+function BoutonTest({ email }: { email: string }) {
   const [etat, setEtat] = useState<string | null>(null)
   async function tester() {
     setEtat('Envoi…')
     const res = await fetch('/api/reglages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telephone }),
+      body: JSON.stringify({ email }),
     })
     const data = await res.json().catch(() => null)
-    setEtat(res.ok ? '✓ SMS de test envoyé' : `✕ ${data?.error ?? 'Échec'}`)
+    setEtat(res.ok ? '✓ E-mail de test envoyé, regarde ta boîte' : `✕ ${data?.error ?? 'Échec'}`)
   }
   return (
     <span className="flex items-center gap-2 flex-wrap">
-      <button type="button" onClick={tester} disabled={!telephone.trim()}
+      <button type="button" onClick={tester} disabled={!email.trim()}
         className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-500 disabled:opacity-40">
-        Envoyer un SMS test
+        Envoyer un e-mail test
       </button>
       {etat && <span className={`text-xs ${etat.startsWith('✕') ? 'text-red-600' : 'text-gray-500'}`}>{etat}</span>}
     </span>
   )
 }
 
-// ── SMS à la commerciale à chaque nouveau prospect ──
-export function SmsProspects({ initial }: { initial: { actif: boolean; telephone: string } }) {
+// ── E-mail à la commerciale à chaque nouveau prospect ──
+export function EmailProspects({ initial }: { initial: { actif: boolean; email: string } }) {
   const [actif, setActif] = useState(initial.actif)
-  const [telephone, setTelephone] = useState(initial.telephone)
+  const [email, setEmail] = useState(initial.email)
   const [msg, setMsg] = useState<string | null>(null)
 
   async function basculer(v: boolean) {
-    if (v && !telephone.trim()) { setMsg('Renseigne d’abord le numéro de portable ci-dessous.'); return }
+    if (v && !email.trim()) { setMsg('Renseigne d’abord l’adresse e-mail ci-dessous.'); return }
     setActif(v)
-    const res = await sauver({ smsProspects: { actif: v, telephone } })
+    const res = await sauver({ emailProspects: { actif: v, email } })
     if (!res.ok) { setActif(!v); setMsg(res.erreur ?? 'Erreur'); return }
     setMsg(v ? '✓ Activé' : 'Désactivé')
   }
 
-  async function enregistrerTel() {
-    const res = await sauver({ smsProspects: { actif, telephone } })
-    setMsg(res.ok ? '✓ Numéro enregistré' : (res.erreur ?? 'Erreur'))
+  async function enregistrerEmail() {
+    const res = await sauver({ emailProspects: { actif, email } })
+    setMsg(res.ok ? '✓ Adresse enregistrée' : (res.erreur ?? 'Erreur'))
   }
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-semibold text-gray-900">📲 SMS à chaque nouveau prospect</p>
+          <p className="font-semibold text-gray-900">📩 E-mail à chaque nouveau prospect</p>
           <p className="text-sm text-gray-500 mt-0.5">
-            Dès qu’un prospect arrive (pub Meta ou formulaire du site), un SMS part avec son nom et son téléphone, pour le rappeler tout de suite.
+            Dès qu’un prospect arrive (pub Meta ou formulaire du site), un e-mail part avec son nom et son téléphone, pour le rappeler tout de suite.
           </p>
         </div>
         <Interrupteur actif={actif} onChange={basculer} />
       </div>
       <div className="flex items-center gap-2 flex-wrap">
-        <input value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="Portable de la commerciale"
-          inputMode="tel" className="input-field !w-56 text-sm" />
-        <button type="button" onClick={enregistrerTel} disabled={telephone === initial.telephone && !msg}
+        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="E-mail de la commerciale"
+          type="email" inputMode="email" className="input-field !w-64 text-sm" />
+        <button type="button" onClick={enregistrerEmail} disabled={email === initial.email && !msg}
           className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-500">
           Enregistrer
         </button>
-        <BoutonTest telephone={telephone} />
+        <BoutonTest email={email} />
       </div>
       {msg && <p className="text-xs text-gray-500">{msg}</p>}
     </div>
   )
 }
 
-// ── SMS au coach à chaque nouveau RDV ──
-type CoachLite = { id: string; nom: string; couleur: string; telephone: string }
+// ── E-mail au coach à chaque nouveau RDV ──
+type CoachLite = { id: string; nom: string; couleur: string; email: string }
 
-export function SmsCoachs({ initial, coaches }: { initial: { actif: boolean }; coaches: CoachLite[] }) {
+export function EmailCoachs({ initial, coaches }: { initial: { actif: boolean }; coaches: CoachLite[] }) {
   const [actif, setActif] = useState(initial.actif)
   const [msg, setMsg] = useState<string | null>(null)
 
   async function basculer(v: boolean) {
     setActif(v)
-    const res = await sauver({ smsCoachRdv: { actif: v } })
+    const res = await sauver({ emailCoachRdv: { actif: v } })
     if (!res.ok) { setActif(!v); setMsg(res.erreur ?? 'Erreur'); return }
     setMsg(v ? '✓ Activé' : 'Désactivé')
   }
@@ -112,9 +112,9 @@ export function SmsCoachs({ initial, coaches }: { initial: { actif: boolean }; c
     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-semibold text-gray-900">💪 SMS au coach à chaque nouveau RDV</p>
+          <p className="font-semibold text-gray-900">💪 E-mail au coach à chaque nouveau RDV</p>
           <p className="text-sm text-gray-500 mt-0.5">
-            Quand un créneau est réservé, le coach reçoit tout de suite un SMS : jour, heure, nom et téléphone de la cliente.
+            Quand un créneau est réservé, le coach reçoit tout de suite un e-mail : jour, heure, nom et téléphone de la cliente.
           </p>
         </div>
         <Interrupteur actif={actif} onChange={basculer} />
@@ -122,39 +122,39 @@ export function SmsCoachs({ initial, coaches }: { initial: { actif: boolean }; c
       {msg && <p className="text-xs text-gray-500">{msg}</p>}
 
       <div className="border-t border-gray-100 pt-3 space-y-3">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Portable des coachs</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">E-mail des coachs</p>
         {coaches.length === 0 && <p className="text-sm text-gray-400">Aucun coach — ajoute-les dans l’onglet Agenda.</p>}
-        {coaches.map(c => <TelCoach key={c.id} coach={c} />)}
+        {coaches.map(c => <EmailCoach key={c.id} coach={c} />)}
       </div>
     </div>
   )
 }
 
-function TelCoach({ coach }: { coach: CoachLite }) {
-  const [tel, setTel] = useState(coach.telephone)
-  const [saved, setSaved] = useState(coach.telephone)
+function EmailCoach({ coach }: { coach: CoachLite }) {
+  const [mail, setMail] = useState(coach.email)
+  const [saved, setSaved] = useState(coach.email)
   const [msg, setMsg] = useState<string | null>(null)
 
   async function enregistrer() {
     const res = await fetch(`/api/coaches/${coach.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telephone: tel }),
+      body: JSON.stringify({ email: mail }),
     })
     const data = await res.json().catch(() => null)
-    if (res.ok) { setSaved(tel); setMsg('✓') } else setMsg(data?.error ?? 'Erreur')
+    if (res.ok) { setSaved(mail); setMsg('✓') } else setMsg(data?.error ?? 'Erreur')
   }
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: coach.couleur }} />
       <span className="text-sm font-medium text-gray-900 w-24">{coach.nom}</span>
-      <input value={tel} onChange={e => setTel(e.target.value)} placeholder="06…" inputMode="tel" className="input-field !w-40 text-sm" />
-      <button type="button" onClick={enregistrer} disabled={tel === saved}
+      <input value={mail} onChange={e => setMail(e.target.value)} placeholder="adresse@gmail.com" type="email" inputMode="email" className="input-field !w-56 text-sm" />
+      <button type="button" onClick={enregistrer} disabled={mail === saved}
         className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-500 disabled:opacity-40">
         Enregistrer
       </button>
-      {!saved && <span className="text-[11px] text-yellow-700">pas de numéro → pas de SMS</span>}
+      {!saved && <span className="text-[11px] text-yellow-700">pas d’adresse → pas d’e-mail</span>}
       {msg && <span className="text-xs text-gray-500">{msg}</span>}
     </div>
   )
