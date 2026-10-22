@@ -130,3 +130,9 @@ CREATE TABLE IF NOT EXISTS reglages (
 );
 ALTER TABLE reglages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS telephone TEXT;
+
+-- =========================
+--  Bilan Forme public (/bilan) — 2026-10-22
+-- =========================
+-- Réponses, profil, provenance et candidature à la séance d'essai, sur la fiche du prospect.
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS diagnostic JSONB;

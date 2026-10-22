@@ -1,9 +1,11 @@
+import type { BilanFiche } from './bilan'
+
 export type Lead = {
   id: string
   nom: string
   telephone: string | null
   email: string | null
-  source: 'Meta Ads' | 'Bouche-à-oreille' | 'Passage' | 'Formulaire web' | 'Autre'
+  source: 'Meta Ads' | 'Bouche-à-oreille' | 'Passage' | 'Formulaire web' | 'Bilan Forme' | 'Autre'
   date_rdv: string | null
   activite: 'cours collectif' | 'plateau muscu' | 'coaching' | null
   rdv_honore: boolean | null
@@ -17,6 +19,7 @@ export type Lead = {
   notes: string | null
   appels: string[]            // horodatages ISO des tentatives d'appel
   vendu_le: string | null     // date réelle de la vente (figée au passage en Vendu)
+  diagnostic: BilanFiche | null // Bilan Forme public (/bilan) : réponses, profil, candidature
   created_at: string
   updated_at: string
 }
@@ -24,7 +27,7 @@ export type Lead = {
 // Statuts du parcours prospect (formulaire + liste)
 export const STATUTS = ['Nouveau prospect', 'Contacté sans réponse', 'À relancer', 'RDV pris'] as const
 
-export const SOURCES = ['Meta Ads', 'Bouche-à-oreille', 'Passage', 'Formulaire web', 'Autre'] as const
+export const SOURCES = ['Meta Ads', 'Bouche-à-oreille', 'Passage', 'Formulaire web', 'Bilan Forme', 'Autre'] as const
 
 // Formules vendues (les clés doivent correspondre à OFFRES dans la page Rentabilité)
 export const FORMULES = [

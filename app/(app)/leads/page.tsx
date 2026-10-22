@@ -7,6 +7,7 @@ import DeleteButton from '@/components/DeleteButton'
 import PasInteresseButton from '@/components/PasInteresseButton'
 import CallTracker from '@/components/CallTracker'
 import MobileNotes from '@/components/MobileNotes'
+import BilanResume from '@/components/BilanResume'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,6 +117,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     Ajouté le {new Date(lead.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' })}
                     {lead.activite ? ` · ${lead.activite}` : ''}
                   </p>
+                  <div className="mt-1.5"><BilanResume leadId={lead.id} fiche={lead.diagnostic} /></div>
                 </div>
                 <div className="flex items-center gap-1">
                   <PasInteresseButton leadId={lead.id} leadNom={lead.nom} />
@@ -165,6 +167,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                       )}
                       {lead.activite && <span className="block text-xs text-gray-500 mt-0.5">{lead.activite}</span>}
                     </Link>
+                    <div className="mt-1"><BilanResume leadId={lead.id} fiche={lead.diagnostic} /></div>
                   </td>
                   <td className="px-4 py-3">
                     {lead.telephone ? (

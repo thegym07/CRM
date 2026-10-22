@@ -9,11 +9,15 @@ export function proxy(request: NextRequest) {
   const session = request.cookies.get(SESSION_COOKIE)
   const isAuthenticated = session?.value === SESSION_VALUE
 
-  // Routes publiques : login, auth API, webhook Meta, formulaire d'inscription public
+  // Routes publiques : login, auth API, webhook Meta, formulaire d'inscription et Bilan Forme publics
   const isPublicPath =
     pathname === '/login' ||
     pathname === '/inscription' ||
     pathname === '/confidentialite' ||
+    // Bilan Forme public (page, images /bilan/*, API)
+    pathname === '/bilan' ||
+    pathname.startsWith('/bilan/') ||
+    pathname.startsWith('/api/bilan') ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/leads/meta') ||
     pathname.startsWith('/api/inscription') ||
