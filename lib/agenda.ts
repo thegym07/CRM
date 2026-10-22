@@ -5,6 +5,7 @@ export type Coach = {
   nom: string
   couleur: string
   email: string | null
+  telephone: string | null       // portable du coach (SMS de nouveau RDV)
   ical_token: string
   ical_import_url: string | null  // lien privé de SON agenda (Google/iPhone) → import des dispos
   actif: boolean
@@ -42,6 +43,13 @@ export async function retirerCoach(id: string): Promise<boolean> {
   await supabase.from('creneaux').delete().eq('coach_id', id).is('lead_id', null)
   const { error } = await supabase.from('coaches').update({ actif: false }).eq('id', id)
   if (error) { console.error('retirerCoach:', error.message); return false }
+  return true
+}
+
+/** Enregistre le portable d'un coach (SMS de nouveau RDV). */
+export async function setCoachTelephone(id: string, telephone: string | null): Promise<boolean> {
+  const { error } = await supabase.from('coaches').update({ telephone }).eq('id', id)
+  if (error) { console.error('setCoachTelephone:', error.message); return false }
   return true
 }
 

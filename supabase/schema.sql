@@ -121,3 +121,12 @@ CREATE INDEX IF NOT EXISTS leads_created_at_idx ON leads(created_at DESC);
 -- Import des dispos depuis l'agenda perso du coach (Google / iPhone)
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS ical_import_url TEXT;
 ALTER TABLE creneaux ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'crm';
+
+-- Réglages (onglet Réglages) + portable des coachs (SMS de nouveau RDV)
+CREATE TABLE IF NOT EXISTS reglages (
+  cle TEXT PRIMARY KEY,
+  valeur JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE reglages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS telephone TEXT;

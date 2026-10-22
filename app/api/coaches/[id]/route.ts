@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { retirerCoach, setCoachImportUrl } from '@/lib/agenda'
+import { retirerCoach, setCoachImportUrl, setCoachTelephone } from '@/lib/agenda'
+import { telInternational } from '@/lib/sms'
 import { testerLienAgenda } from '@/lib/icalImport'
 
 // PATCH : enregistre le lien d'agenda perso du coach (Google / iPhone)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const data = await request.json()
+
+  // Portable du coach (onglet Réglages)
+  if ('telephone' in data) {
+    const tel = typeof data.telephone === 'string' ? data.telephone.trim() : ''
+    if (tel && !telInternational(tel)) return NextResponse.json({ error: 'Numéro de portable invalide' }, { status: 400 })
+    const ok = await setCoachTelephone(id, tel || null)
+    return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Impossible' }, { status: 500 })
+  }
+
   const brut = typeof data.ical_import_url === 'string' ? data.ical_import_url.trim() : ''
   const url = brut === '' ? null : brut
   if (url && !/^(https?|webcal):\/\//i.test(url)) {
