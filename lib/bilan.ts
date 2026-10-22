@@ -801,7 +801,7 @@ export function buildResult(a: Answers): BilanResult {
             problem: '« Mon assiette ne suit pas »',
             title: 'Quelques repères simples à table, sans régime',
             text: 'Pas de privation ni d’aliments interdits : des repas qui calent (protéines, légumes), moins de grignotage et des quantités adaptées. C’est ce qui permet à vos efforts en salle de se voir.',
-            gym: 'Côté entraînement, les cours Burn calories, Tabata et Biking font grimper votre dépense, et la musculation aide à garder votre muscle pendant que vous perdez du poids. Votre séance d’essai est aussi le bon moment pour en parler avec un coach.',
+            gym: 'Côté entraînement, les cours Burn calories, Cardio Dance et Biking font grimper votre dépense, et la musculation aide à garder votre muscle pendant que vous perdez du poids. Votre séance d’essai est aussi le bon moment pour en parler avec un coach.',
           },
     douleurs: {
       problem: corps.includes('dos') ? '« J’ai mal au dos »' : '« Une douleur me freine »',
@@ -930,11 +930,11 @@ export const GOOGLE = { note: '4,9', avis: 171, url: 'https://www.google.com/map
 interface Avis { name: string; text: string; tags: ProfileId[] }
 
 const AVIS: Avis[] = [
-  { name: 'Marine R.', text: 'Salle de sport convivial, sans jugements. Des coaches qui s’adaptent parfaitement à tous les niveaux.', tags: ['regard', 'savoir', 'reprise', 'douleurs'] },
+  { name: 'Marine R.', text: 'Sans jugements. Des coaches qui s’adaptent parfaitement à tous les niveaux. Très bon accompagnement dans la pratique sportive.', tags: ['regard', 'savoir', 'reprise', 'douleurs'] },
   { name: 'Charlyne', text: 'Vous souhaitez vous remettre au sport, alors faîtes comme moi. Foncez chez The Gym à Rosières.', tags: ['reprise', 'motivation', 'irregulier'] },
   { name: 'Hélène B.', text: 'Elle est idéale pour s’entraîner seul ou pour suivre un cours collectif. Il y a une diversité de propositions et les coachs sont toujours à l’écoute et attentifs.', tags: ['savoir', 'routine', 'age', 'douleurs'] },
   { name: 'Jean-Louis C.', text: 'C’est un plaisir de s’y rendre plusieurs fois par semaine. On y entre froissé. On en ressort lessivé et repassé. Allez y !', tags: ['motivation', 'irregulier', 'temps', 'age'] },
-  { name: 'Nicolas C.', text: 'Cours collectifs et coatching personnel sont excellents ! A recommander vivement', tags: ['routine', 'assiette', 'motivation'] },
+  { name: 'Sandrine G.', text: 'Coachs très professionnels et très sympas. Cours collectifs au top. Super bonne ambiance.', tags: ['routine', 'assiette', 'motivation'] },
   { name: 'Ste F.', text: 'Une salle de sport superbe, des coach très sympas et très professionnels, des cours collectifs challengeant et chouettes! Bref, j’adore et je recommande!', tags: ['irregulier', 'assiette', 'temps'] },
 ]
 
