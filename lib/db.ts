@@ -7,7 +7,7 @@ const TABLE = 'leads'
 const WRITABLE: (keyof Lead)[] = [
   'nom', 'telephone', 'email', 'source', 'date_rdv', 'activite',
   'rdv_honore', 'resultat_rdv', 'statut', 'offre_souscrite', 'coach_assigne',
-  'date_relance', 'motif_relance', 'suivi_relance', 'notes', 'appels', 'vendu_le',
+  'date_relance', 'motif_relance', 'suivi_relance', 'notes', 'appels', 'vendu_le', 'diagnostic',
 ]
 
 function pickWritable(data: Partial<Lead>): Partial<Lead> {
@@ -19,7 +19,7 @@ function pickWritable(data: Partial<Lead>): Partial<Lead> {
 }
 
 function normalize(row: Record<string, unknown>): Lead {
-  return { ...row, appels: (row.appels as string[]) ?? [] } as Lead
+  return { ...row, appels: (row.appels as string[]) ?? [], diagnostic: (row.diagnostic as Lead['diagnostic']) ?? null } as Lead
 }
 
 export async function getLeads(): Promise<Lead[]> {

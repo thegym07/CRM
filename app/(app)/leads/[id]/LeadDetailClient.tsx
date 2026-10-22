@@ -6,6 +6,7 @@ import { type Lead } from '@/lib/supabase'
 import LeadForm from '@/components/LeadForm'
 import CallTracker from '@/components/CallTracker'
 import PasInteresseButton from '@/components/PasInteresseButton'
+import BilanResume from '@/components/BilanResume'
 
 export default function LeadDetailClient({ lead }: { lead: Lead }) {
   const router = useRouter()
@@ -58,6 +59,11 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
       </div>
 
       <div className="space-y-4">
+        {lead.diagnostic && (
+          <Section title="Bilan Forme">
+            <div className="px-4 py-3 text-sm"><BilanResume leadId={lead.id} fiche={lead.diagnostic} /></div>
+          </Section>
+        )}
         <Section title="Contact">
           <Row label="Téléphone">
             {lead.telephone ? <a href={`tel:${lead.telephone}`} className="text-blue-400 hover:underline">{lead.telephone}</a> : <Empty />}
