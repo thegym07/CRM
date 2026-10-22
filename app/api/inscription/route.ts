@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createLead } from '@/lib/db'
+import { notifierNouveauProspect } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
   let body: Record<string, string>
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     ? (body.activite as 'cours collectif' | 'plateau muscu' | 'coaching')
     : null
 
-  await createLead({
+  const cree = await createLead({
     nom,
     telephone: body.telephone?.trim() || null,
     email: body.email?.trim() || null,
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
     statut: 'Nouveau prospect',
     notes: body.message?.trim() || null,
   })
+  await notifierNouveauProspect(cree)
 
   return NextResponse.json({ success: true })
 }

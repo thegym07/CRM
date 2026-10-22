@@ -20,6 +20,7 @@ const bottomItems = [
   { href: '/rapport', label: 'Rapport', icon: '📋' },
   { href: '/commissions', label: 'Commission Bonus', icon: '💶' },
   { href: '/rentabilite', label: 'Rentabilité', icon: '📈' },
+  { href: '/reglages', label: 'Réglages', icon: '⚙️' },
 ]
 
 // Nav mobile : les 4 onglets du quotidien, le reste derrière « Plus »
@@ -33,6 +34,7 @@ const mobilePlus = [
   { href: '/rapport', label: 'Rapport', icon: '📋' },
   { href: '/commissions', label: 'Commission Bonus', icon: '💶' },
   { href: '/rentabilite', label: 'Rentabilité', icon: '📈' },
+  { href: '/reglages', label: 'Réglages', icon: '⚙️' },
 ]
 
 function NavLink({ item, active }: { item: { href: string; label: string; icon: string }; active: boolean }) {

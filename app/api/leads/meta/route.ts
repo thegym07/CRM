@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createLead, findLeadByPhoneOrEmail } from '@/lib/db'
+import { notifierNouveauProspect } from '@/lib/notifications'
 
 const GRAPH_VERSION = 'v21.0'
 
@@ -100,6 +101,7 @@ async function traiterLead(leadgenId: string) {
     statut: 'Nouveau prospect',
   })
   console.log(`[META WEBHOOK] ✅ Prospect créé dans Supabase (id=${cree.id})`)
+  await notifierNouveauProspect(cree)
 }
 
 // Transforme field_data [{name, values:[]}] en objet { name: value }

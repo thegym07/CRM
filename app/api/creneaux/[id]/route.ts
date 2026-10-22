@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supprimerDispo, reserverCreneau } from '@/lib/agenda'
 import { getLead, updateLead } from '@/lib/db'
 import { getCoaches } from '@/lib/agenda'
+import { notifierCoachNouveauRdv } from '@/lib/notifications'
 
 // DELETE : supprime une dispo libre
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +30,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     coach_assigne: coach?.nom ?? null,
     statut: 'RDV pris',
   })
+
+  await notifierCoachNouveauRdv(coach, creneau, lead)
 
   return NextResponse.json({ success: true, creneau })
 }
