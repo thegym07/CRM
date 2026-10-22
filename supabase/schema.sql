@@ -122,7 +122,7 @@ CREATE INDEX IF NOT EXISTS leads_created_at_idx ON leads(created_at DESC);
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS ical_import_url TEXT;
 ALTER TABLE creneaux ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'crm';
 
--- Réglages (onglet Réglages) + portable des coachs (SMS de nouveau RDV)
+-- Réglages (onglet Réglages : notifications e-mail). coaches.telephone : inutilisé (ancienne option SMS)
 CREATE TABLE IF NOT EXISTS reglages (
   cle TEXT PRIMARY KEY,
   valeur JSONB NOT NULL DEFAULT '{}'::jsonb,

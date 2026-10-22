@@ -1,38 +1,70 @@
 import { getReglages } from './reglages'
-import { envoyerSms } from './sms'
+import { envoyerEmail } from './email'
 import type { Lead } from './supabase'
 import type { Coach, Creneau } from './agenda'
 
-// Notifications SMS, déclenchées selon l'onglet Réglages.
-// Ne lèvent jamais d'erreur : un SMS raté ne doit pas bloquer l'arrivée d'un prospect ou une réservation.
+// Notifications par e-mail, déclenchées selon l'onglet Réglages.
+// Ne lèvent jamais d'erreur : un e-mail raté ne doit pas bloquer l'arrivée d'un prospect ou une réservation.
 
-/** Nouveau prospect (pub Meta ou formulaire du site) → SMS à la commerciale. */
-export async function notifierNouveauProspect(lead: Pick<Lead, 'nom' | 'telephone' | 'source'>): Promise<void> {
+const CRM = 'https://crm-thegym.vercel.app'
+
+/** Nouveau prospect (pub Meta ou formulaire du site) → e-mail à la commerciale. */
+export async function notifierNouveauProspect(lead: Pick<Lead, 'id' | 'nom' | 'telephone' | 'email' | 'source'>): Promise<void> {
   try {
-    const { smsProspects } = await getReglages()
-    if (!smsProspects.actif || !smsProspects.telephone) return
-    const tel = lead.telephone ? ` - ${lead.telephone}` : ''
-    await envoyerSms(smsProspects.telephone, `THE GYM : nouveau prospect ${lead.nom}${tel} (${lead.source}). A rappeler vite !`)
+    const { emailProspects } = await getReglages()
+    if (!emailProspects.actif || !emailProspects.email) return
+    await envoyerEmail(
+      emailProspects.email,
+      `Nouveau prospect : ${lead.nom}`,
+      [
+        `Bonjour,`,
+        ``,
+        `Un nouveau prospect vient d'arriver (${lead.source}) :`,
+        ``,
+        `${lead.nom}`,
+        lead.telephone ? `Téléphone : ${lead.telephone}` : null,
+        lead.email ? `E-mail : ${lead.email}` : null,
+        ``,
+        `Rappelle-le vite, c'est maintenant qu'il est le plus chaud !`,
+        `Sa fiche : ${CRM}/leads/${lead.id}`,
+        ``,
+        `THE GYM`,
+      ].filter(l => l !== null).join('\n'),
+    )
   } catch (err) {
     console.error('[NOTIF] nouveau prospect :', err instanceof Error ? err.message : err)
   }
 }
 
-/** Créneau réservé → SMS au coach concerné. */
+/** Créneau réservé → e-mail au coach concerné. */
 export async function notifierCoachNouveauRdv(
   coach: Coach | undefined,
   creneau: Creneau,
   lead: Pick<Lead, 'nom' | 'telephone'>,
 ): Promise<void> {
   try {
-    if (!coach?.telephone) return
-    const { smsCoachRdv } = await getReglages()
-    if (!smsCoachRdv.actif) return
+    if (!coach?.email) return
+    const { emailCoachRdv } = await getReglages()
+    if (!emailCoachRdv.actif) return
     const quand = new Date(creneau.debut).toLocaleString('fr-FR', {
       weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris',
     })
-    const tel = lead.telephone ? ` (${lead.telephone})` : ''
-    await envoyerSms(coach.telephone, `THE GYM : nouveau RDV ${quand} avec ${lead.nom}${tel}. Bonne seance !`)
+    await envoyerEmail(
+      coach.email,
+      `Nouveau RDV THE GYM : ${quand}`,
+      [
+        `Salut ${coach.nom},`,
+        ``,
+        `Tu as un nouveau RDV : ${quand}`,
+        `Avec : ${lead.nom}`,
+        lead.telephone ? `Téléphone : ${lead.telephone}` : null,
+        ``,
+        `Tous tes RDV : ${CRM}/coach/${coach.ical_token}`,
+        ``,
+        `Bonne séance !`,
+        `THE GYM`,
+      ].filter(l => l !== null).join('\n'),
+    )
   } catch (err) {
     console.error('[NOTIF] RDV coach :', err instanceof Error ? err.message : err)
   }

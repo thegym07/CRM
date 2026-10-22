@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { retirerCoach, setCoachImportUrl, setCoachTelephone } from '@/lib/agenda'
-import { telInternational } from '@/lib/sms'
+import { retirerCoach, setCoachImportUrl, setCoachEmail } from '@/lib/agenda'
+import { emailValide } from '@/lib/email'
 import { testerLienAgenda } from '@/lib/icalImport'
 
 // PATCH : enregistre le lien d'agenda perso du coach (Google / iPhone)
@@ -8,11 +8,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { id } = await params
   const data = await request.json()
 
-  // Portable du coach (onglet Réglages)
-  if ('telephone' in data) {
-    const tel = typeof data.telephone === 'string' ? data.telephone.trim() : ''
-    if (tel && !telInternational(tel)) return NextResponse.json({ error: 'Numéro de portable invalide' }, { status: 400 })
-    const ok = await setCoachTelephone(id, tel || null)
+  // E-mail du coach (onglet Réglages)
+  if ('email' in data) {
+    const email = typeof data.email === 'string' ? data.email.trim() : ''
+    if (email && !emailValide(email)) return NextResponse.json({ error: 'Adresse e-mail invalide' }, { status: 400 })
+    const ok = await setCoachEmail(id, email || null)
     return ok ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Impossible' }, { status: 500 })
   }
 

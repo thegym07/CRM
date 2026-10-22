@@ -2,13 +2,13 @@ import { supabase } from './supabaseServer'
 
 // Réglages du CRM (onglet Réglages), stockés en base : table reglages (cle, valeur jsonb).
 export type Reglages = {
-  smsProspects: { actif: boolean; telephone: string }  // SMS à la commerciale à chaque nouveau prospect
-  smsCoachRdv: { actif: boolean }                      // SMS au coach à chaque nouveau RDV
+  emailProspects: { actif: boolean; email: string }  // e-mail à la commerciale à chaque nouveau prospect
+  emailCoachRdv: { actif: boolean }                  // e-mail au coach à chaque nouveau RDV
 }
 
 const DEFAUT: Reglages = {
-  smsProspects: { actif: false, telephone: '' },
-  smsCoachRdv: { actif: false },
+  emailProspects: { actif: false, email: '' },
+  emailCoachRdv: { actif: false },
 }
 
 export async function getReglages(): Promise<Reglages> {
@@ -16,8 +16,8 @@ export async function getReglages(): Promise<Reglages> {
   if (error) { console.error('getReglages:', error.message); return DEFAUT }
   const map = new Map((data ?? []).map(r => [r.cle as string, r.valeur]))
   return {
-    smsProspects: { ...DEFAUT.smsProspects, ...(map.get('smsProspects') ?? {}) },
-    smsCoachRdv: { ...DEFAUT.smsCoachRdv, ...(map.get('smsCoachRdv') ?? {}) },
+    emailProspects: { ...DEFAUT.emailProspects, ...(map.get('emailProspects') ?? {}) },
+    emailCoachRdv: { ...DEFAUT.emailCoachRdv, ...(map.get('emailCoachRdv') ?? {}) },
   }
 }
 

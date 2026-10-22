@@ -19,11 +19,17 @@ export default function SuiviRelanceSelect({ leadId, value, nom }: { leadId: str
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const v = e.target.value
 
-    // Perdu -> suppression définitive
+    // Pas intéressé -> suppression définitive (sans le minimum de 7 appels)
     if (v === 'Perdu') {
-      if (!confirm(`Marquer « ${nom} » comme perdu et le supprimer définitivement ?`)) return
+      if (!confirm(`${nom} n'est pas intéressé(e) ?\nIl/elle sera supprimé(e) définitivement du CRM.`)) return
       setSaving(true)
-      await fetch(`/api/leads/${leadId}`, { method: 'DELETE' })
+      const res = await fetch(`/api/leads/${leadId}?motif=pas-interesse`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        alert(data?.error ?? 'Suppression impossible.')
+        setSaving(false)
+        return
+      }
       router.refresh()
       return
     }
@@ -72,7 +78,7 @@ export default function SuiviRelanceSelect({ leadId, value, nom }: { leadId: str
       <option value="À appeler">À appeler</option>
       <option value="Pas de réponse">Pas de réponse</option>
       <option value="RDV repris">RDV repris →</option>
-      <option value="Perdu">Perdu ✕</option>
+      <option value="Perdu">Pas intéressé ✕</option>
     </select>
   )
 }
