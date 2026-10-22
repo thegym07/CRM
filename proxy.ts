@@ -18,7 +18,10 @@ export function proxy(request: NextRequest) {
     pathname.startsWith('/api/leads/meta') ||
     pathname.startsWith('/api/inscription') ||
     pathname.startsWith('/api/cron') ||
-    pathname.startsWith('/api/calendar')
+    pathname.startsWith('/api/calendar') ||
+    // Page perso des coachs : accès par lien secret (token), sans mot de passe
+    pathname.startsWith('/coach/') ||
+    pathname.startsWith('/api/coach/')
 
   if (!isPublicPath && !isAuthenticated) {
     return NextResponse.redirect(new URL('/login', request.url))

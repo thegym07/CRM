@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { retirerCoach, setCoachImportUrl } from '@/lib/agenda'
+import { testerLienAgenda } from '@/lib/icalImport'
 
 // PATCH : enregistre le lien d'agenda perso du coach (Google / iPhone)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -9,6 +10,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const url = brut === '' ? null : brut
   if (url && !/^(https?|webcal):\/\//i.test(url)) {
     return NextResponse.json({ error: 'Lien invalide — il doit commencer par https:// ou webcal://' }, { status: 400 })
+  }
+  if (url) {
+    const test = await testerLienAgenda(url)
+    if (!test.ok) return NextResponse.json({ error: 'Impossible de lire cet agenda — vérifie le lien' }, { status: 400 })
   }
   const ok = await setCoachImportUrl(id, url)
   if (!ok) return NextResponse.json({ error: 'Impossible' }, { status: 500 })

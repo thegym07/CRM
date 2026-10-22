@@ -164,22 +164,36 @@ export function GestionCoachs({ coaches, baseUrl }: { coaches: Coach[]; baseUrl:
       <p className="label-condensed mb-3">Coachs</p>
 
       <div className="space-y-4 mb-4">
-        {coaches.map(c => (
-          <div key={c.id} className="border border-gray-100 rounded-lg p-3 space-y-2">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: c.couleur }} />
-              <span className="text-sm font-medium text-gray-900 w-24">{c.nom}</span>
-              <span className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 min-w-0">
-                <span className="text-[11px] text-gray-500 truncate max-w-[220px]">
-                  {baseUrl}/api/calendar/{c.ical_token}.ics
+        {coaches.map(c => {
+          const pageCoach = `${baseUrl}/coach/${c.ical_token}`
+          const message = `Salut ${c.nom} ! Voici ta page THE GYM pour brancher ton agenda (2 minutes, une seule fois) : ${pageCoach}`
+          return (
+            <div key={c.id} className="border border-gray-100 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: c.couleur }} />
+                <span className="text-sm font-medium text-gray-900 w-24">{c.nom}</span>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.ical_import_url ? 'bg-green-100 text-green-700' : 'bg-[#F5C800]/30 text-yellow-800'}`}>
+                  {c.ical_import_url ? '🔗 Agenda connecté' : '⏳ Agenda pas encore connecté'}
                 </span>
-                <CopyButton text={`${baseUrl}/api/calendar/${c.ical_token}.ics`} />
-              </span>
-              <button onClick={() => retirer(c)} className="text-gray-300 hover:text-red-500 text-sm">✕</button>
+                <button onClick={() => retirer(c)} className="ml-auto text-gray-300 hover:text-red-500 text-sm">✕</button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap pl-6">
+                <a href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#25D366] text-white hover:opacity-90">
+                  💬 Envoyer sa page par WhatsApp
+                </a>
+                <span className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 min-w-0">
+                  <span className="text-[11px] text-gray-500 truncate max-w-[200px]">{pageCoach}</span>
+                  <CopyButton text={pageCoach} />
+                </span>
+              </div>
+              <details className="pl-6">
+                <summary className="text-[11px] text-gray-400 cursor-pointer select-none">Brancher son agenda à sa place</summary>
+                <div className="mt-2"><LienAgendaCoach coach={c} /></div>
+              </details>
             </div>
-            <LienAgendaCoach coach={c} />
-          </div>
-        ))}
+          )
+        })}
         {coaches.length === 0 && <p className="text-sm text-gray-400">Aucun coach — ajoute le premier ci-dessous.</p>}
       </div>
 
@@ -198,19 +212,10 @@ export function GestionCoachs({ coaches, baseUrl }: { coaches: Coach[]; baseUrl:
       </div>
 
       <p className="text-[11px] text-gray-400 mt-3 leading-relaxed">
-        📱 <strong>Voir ses RDV THE GYM dans son téléphone</strong> : copier son lien ci-dessus, puis
-        — iPhone : Réglages → Apps → Calendrier → Comptes → Ajouter un compte → Autre → Ajouter un abonnement, coller le lien.
-        — Google Agenda : Paramètres → Ajouter un agenda → À partir d'une URL, coller le lien.
-        Ses RDV apparaîtront automatiquement (nom du prospect + téléphone).
-      </p>
-      <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
-        🔄 <strong>Ses dispos gérées depuis SON agenda</strong> : colle le lien privé de son agenda dans le champ sous son nom.
-        Où le trouver ? — Google Agenda (sur ordinateur) : Paramètres → son agenda → « Adresse secrète au format iCal », copier.
-        — iPhone/iCloud : www.icloud.com → Calendrier → icône de partage de son calendrier → « Calendrier public », copier le lien webcal.
-        Ensuite, chaque événement nommé <strong>« Dispo »</strong> dans son agenda devient automatiquement des créneaux réservables d'1 h ici
-        (ex. « Dispo » de 9h à 12h = 3 créneaux). Les récurrences (« Dispo » tous les mardis) fonctionnent.
-        Et surtout : <strong>tout autre rendez-vous qu'il ajoute dans son agenda annule automatiquement les créneaux libres qui le chevauchent</strong> —
-        le coach n'a jamais à toucher au CRM. Les créneaux déjà réservés par une cliente ne sont jamais annulés automatiquement.
+        👉 <strong>Comment ça marche</strong> : envoie à chaque coach <strong>sa page perso</strong> (bouton WhatsApp). Sur son téléphone, il branche
+        son agenda iPhone ou Google en suivant les étapes (une seule fois), et ajoute ses RDV THE GYM à son agenda en un clic.
+        Ensuite il note <strong>« Dispo »</strong> dans son agenda quand il est libre : ça crée les créneaux ici. Tout autre rendez-vous
+        (client perso, dentiste…) annule automatiquement les créneaux qui le chevauchent. Un créneau déjà réservé par une cliente n'est jamais annulé tout seul.
       </p>
     </div>
   )
