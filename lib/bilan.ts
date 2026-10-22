@@ -20,13 +20,10 @@ export type QuestionId =
   | 'objectif'
   | 'kilos'
   | 'pratique'
-  | 'rythme'
   | 'salle'
   | 'lache'
   | 'corps'
   | 'age'
-  | 'assiette'
-  | 'energie'
   | 'envie'
   | 'creneaux'
   | 'quand'
@@ -71,25 +68,14 @@ export const QUESTIONS: Question[] = [
   {
     id: 'pratique',
     title: 'Le sport et vous, en ce moment ?',
+    sub: 'Choisissez ce qui vous ressemble le plus',
     short: 'Pratique',
     options: [
-      { value: 'regulier', label: 'Je m’entraîne régulièrement' },
-      { value: 'irregulier', label: 'J’en fais, mais pas régulièrement' },
+      { value: 'stagne', label: 'Je m’entraîne régulièrement… mais je stagne' },
+      { value: 'periodes', label: 'J’en fais par périodes : à fond, puis plus rien' },
+      { value: 'quand_temps', label: 'J’y vais quand j’ai le temps, sans vraie régularité' },
       { value: 'pause', label: 'J’ai arrêté depuis plusieurs mois (ou années)' },
       { value: 'jamais', label: 'Je n’en ai jamais vraiment fait' },
-    ],
-  },
-  {
-    id: 'rythme',
-    title: 'Quand vous vous mettez au sport, ça se passe plutôt comment ?',
-    sub: 'Choisissez ce qui vous ressemble le plus',
-    short: 'Rythme',
-    options: [
-      { value: 'fond', label: 'Je démarre à fond… puis j’arrête d’un coup' },
-      { value: 'quand_temps', label: 'J’y vais quand j’ai le temps, sans vraie régularité' },
-      { value: 'meme', label: 'J’y vais souvent, mais je fais toujours la même chose' },
-      { value: 'hasard', label: 'Je fais un peu au hasard, sans savoir si c’est efficace' },
-      { value: 'jamais', label: 'Je n’ai jamais vraiment réussi à m’y mettre' },
     ],
   },
   {
@@ -146,29 +132,6 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 'assiette',
-    title: 'Et côté assiette ?',
-    short: 'Assiette',
-    options: [
-      { value: 'ok', label: 'Je mange plutôt équilibré' },
-      { value: 'craque', label: 'Je grignote ou je craque souvent' },
-      { value: 'pouce', label: 'Je mange vite, ce qui est pratique' },
-      { value: 'sais_pas', label: 'Je ne sais pas quoi manger pour mon objectif' },
-      { value: 'bloque', label: 'Je fais attention… et pourtant rien ne bouge' },
-    ],
-  },
-  {
-    id: 'energie',
-    title: 'Votre énergie, en ce moment ?',
-    short: 'Énergie',
-    options: [
-      { value: 'fatigue', label: 'La fatigue est là presque tous les jours' },
-      { value: 'stress', label: 'Le stress prend beaucoup de place' },
-      { value: 'les_deux', label: 'Les deux' },
-      { value: 'ok', label: 'Ça va plutôt bien' },
-    ],
-  },
-  {
     id: 'envie',
     title: 'Qu’est-ce qui vous donne le plus envie de vous entraîner ?',
     short: 'Ce qui lui plaît',
@@ -218,7 +181,6 @@ export type ProfileId =
   | 'temps'
   | 'routine'
   | 'irregulier'
-  | 'assiette'
   | 'douleurs'
   | 'age'
   | 'reprise'
@@ -253,11 +215,6 @@ export const PROFILES: Record<ProfileId, { name: string; emoji: string; pitch: s
     name: 'Le Tout ou rien',
     emoji: '🎢',
     pitch: 'Quand vous y allez, c’est à fond… jusqu’au jour où tout s’arrête. Ce qui fait la différence, ce n’est pas l’intensité : c’est la régularité.',
-  },
-  assiette: {
-    name: 'L’Assiette qui freine',
-    emoji: '🍽️',
-    pitch: 'Vous avez l’envie de bouger, mais votre assiette ne suit pas encore votre objectif. C’est souvent là que tout se joue.',
   },
   douleurs: {
     name: 'Le Corps qui proteste',
@@ -337,22 +294,15 @@ const COURS_DESC: Record<string, string> = {
 /** Points apportés à chaque problème par chaque réponse. */
 const SCORES: Partial<Record<QuestionId, Record<string, Partial<Record<ProfileId, number>>>>> = {
   objectif: {
-    perte: { assiette: 1 },
-    muscle: { routine: 1, assiette: 1 },
+    muscle: { routine: 1 },
     mieux: { douleurs: 1 },
   },
   pratique: {
-    regulier: { routine: 2 },
-    irregulier: { irregulier: 2 },
+    stagne: { routine: 5 },
+    periodes: { irregulier: 5 },
+    quand_temps: { irregulier: 2, temps: 3 },
     pause: { reprise: 4 },
-    jamais: { savoir: 2, regard: 1 },
-  },
-  rythme: {
-    fond: { irregulier: 4 },
-    quand_temps: { irregulier: 2, temps: 2 },
-    meme: { routine: 4 },
-    hasard: { savoir: 3, routine: 1 },
-    jamais: { motivation: 2, savoir: 1 },
+    jamais: { savoir: 2, regard: 1, motivation: 1 },
   },
   salle: {
     perdu: { savoir: 4 },
@@ -379,16 +329,6 @@ const SCORES: Partial<Record<QuestionId, Record<string, Partial<Record<ProfileId
     '45_59': { age: 3 },
     '60p': { age: 5 },
   },
-  assiette: {
-    craque: { assiette: 3 },
-    pouce: { assiette: 2, temps: 1 },
-    sais_pas: { assiette: 3 },
-    bloque: { assiette: 3, routine: 1 },
-  },
-  energie: {
-    fatigue: { motivation: 1 },
-    les_deux: { motivation: 1, irregulier: 1 },
-  },
   creneaux: {
     rien: { temps: 4 },
   },
@@ -404,7 +344,6 @@ const PRIORITY: ProfileId[] = [
   'motivation',
   'routine',
   'temps',
-  'assiette',
   'age',
 ]
 
@@ -420,8 +359,6 @@ export function blockersOf(a: Answers): ProfileId[] {
   if (a.age !== '45_59' && a.age !== '60p') score.age = 0
   // La reprise ne concerne que celles et ceux qui ont arrêté.
   if (a.pratique !== 'pause') score.reprise = 0
-  // L'assiette pèse surtout quand on veut perdre du poids ou prendre du muscle.
-  if (a.objectif !== 'perte' && a.objectif !== 'muscle') score.assiette = Math.min(score.assiette, 2)
 
   const ranked = [...PRIORITY].sort((x, y) => score[y] - score[x])
   const top = score[ranked[0]]
@@ -435,16 +372,11 @@ export function blockersOf(a: Answers): ProfileId[] {
 // Ses réponses, reformulées.
 const MIRROR: Partial<Record<QuestionId, Record<string, string>>> = {
   pratique: {
-    irregulier: 'Vous faites du sport, mais pas de façon régulière.',
+    stagne: 'Vous vous entraînez régulièrement… mais vous stagnez.',
+    periodes: 'Vous faites du sport par périodes : à fond, puis plus rien.',
+    quand_temps: 'Vous y allez quand vous avez le temps, sans vraie régularité.',
     pause: 'Vous avez arrêté le sport depuis plusieurs mois, voire plus.',
     jamais: 'Le sport n’a jamais vraiment fait partie de votre quotidien.',
-  },
-  rythme: {
-    fond: 'Quand vous vous y mettez, vous démarrez à fond… puis vous arrêtez d’un coup.',
-    quand_temps: 'Vous y allez quand vous avez le temps, sans vraie régularité.',
-    meme: 'Vous y allez souvent, mais vous faites toujours un peu la même chose.',
-    hasard: 'Vous vous entraînez un peu au hasard, sans savoir si c’est efficace.',
-    jamais: 'Vous n’avez jamais vraiment réussi à vous y mettre.',
   },
   salle: {
     perdu: 'En salle, vous ne savez pas trop quoi faire, ni comment utiliser les machines.',
@@ -466,17 +398,6 @@ const MIRROR: Partial<Record<QuestionId, Record<string, string>>> = {
     raide: 'Vous vous sentez raide, vous manquez de souplesse.',
     souffle: 'Vous vous essoufflez vite.',
   },
-  assiette: {
-    craque: 'Côté assiette, vous grignotez ou vous craquez souvent.',
-    pouce: 'Vous mangez vite, ce qui est pratique plutôt que ce qui vous aide.',
-    sais_pas: 'Vous ne savez pas vraiment quoi manger pour votre objectif.',
-    bloque: 'Vous faites attention à ce que vous mangez… et pourtant rien ne bouge.',
-  },
-  energie: {
-    fatigue: 'La fatigue est là presque tous les jours.',
-    stress: 'Le stress prend beaucoup de place en ce moment.',
-    les_deux: 'Entre la fatigue et le stress, vous êtes pas mal à plat en ce moment.',
-  },
   age: {
     '45_59': 'Et vous sentez que votre corps ne réagit plus tout à fait comme avant.',
     '60p': 'Et parfois, vous vous demandez s’il n’est pas un peu tard pour vous y mettre.',
@@ -497,8 +418,6 @@ const ROOT: Record<ProfileId, string> = {
     'Vous faites l’effort d’y aller, et c’est le plus dur. Mais votre corps s’est habitué : il s’adapte en quelques semaines à ce qu’on lui demande. Sans nouveauté, sans charge ni difficulté qui augmentent progressivement, il n’a plus de raison de changer. Ce n’est pas plus d’efforts qu’il vous faut : c’est un entraînement qui évolue.',
   irregulier:
     'Vous ne manquez pas d’énergie : vous la dépensez d’un coup. Démarrer à fond donne de vrais résultats… pendant trois semaines. Puis la fatigue, un imprévu ou une semaine chargée, et tout s’arrête. Le corps progresse avec la régularité, pas avec l’intensité : deux séances par semaine tenues pendant des mois valent bien plus que cinq séances pendant trois semaines.',
-  assiette:
-    'L’entraînement compte, mais pour votre objectif, l’assiette pèse lourd. Une séance de sport se « rattrape » très vite à table, sans même s’en rendre compte. Ce n’est pas une question de régime ni de privation : il s’agit d’avoir quelques repères simples, adaptés à votre objectif, pour que vos efforts en salle se voient enfin.',
   douleurs:
     'Une douleur ou une ancienne blessure crée souvent un cercle : on a peur de se faire mal, alors on bouge moins… et le corps perd en force et en mobilité, ce qui n’arrange rien. Le bon chemin passe en général par un renforcement progressif et encadré, qui ne force jamais sur la douleur. Et si elle persiste, l’avis de votre médecin ou d’un kiné reste le premier réflexe.',
   age:
@@ -614,7 +533,7 @@ function buildPlan(a: Answers, detected: ProfileId[]): Plan {
   if (has('irregulier')) w.cours += 1
   if (has('routine')) w.muscu += 1
   if (has('temps')) w.muscu += 1
-  if (has('douleurs')) w.doux += detected[0] === 'douleurs' ? 4 : 2
+  if (has('douleurs')) w.doux += detected[0] === 'douleurs' ? 5 : 2
   if (has('age')) w.doux += 1
   if (a.objectif === 'muscle') w.muscu += 3
   if (a.objectif === 'perte') { w.cours += 1; w.muscu += 1 }
@@ -669,15 +588,12 @@ export function buildResult(a: Answers): BilanResult {
   const lache = asList(a.lache)
   const corps = asList(a.corps)
   const creneaux = asList(a.creneaux)
-  const tired = a.energie === 'fatigue' || a.energie === 'les_deux'
-  const stressed = a.energie === 'stress' || a.energie === 'les_deux'
   const over45 = a.age === '45_59' || a.age === '60p'
-  const foodIssue = ['craque', 'pouce', 'sais_pas', 'bloque'].includes(a.assiette as string)
   const pain = corps.includes('dos') || corps.includes('articulations') || lache.includes('douleur')
 
   // --- Ce que vous nous avez dit -------------------------------------------
   const mirror: string[] = []
-  for (const qid of ['pratique', 'rythme', 'salle', 'lache', 'corps', 'assiette', 'energie', 'age'] as QuestionId[]) {
+  for (const qid of ['pratique', 'salle', 'lache', 'corps', 'age'] as QuestionId[]) {
     for (const v of asList(a[qid]).slice(0, qid === 'lache' ? 2 : 1)) {
       const line = MIRROR[qid]?.[v]
       if (line) mirror.push(line)
@@ -686,12 +602,10 @@ export function buildResult(a: Answers): BilanResult {
 
   // --- Liens entre ses réponses -------------------------------------------
   const links: string[] = []
-  if (tired && (profile === 'motivation' || profile === 'irregulier'))
-    links.push('Et ce n’est pas un hasard si c’est dur de tenir : avec la fatigue que vous décrivez, chaque séance demande un effort de plus. C’est justement pour ça qu’un rendez-vous fixe, qui ne dépend pas de votre forme du jour, change tout.')
-  else if (tired)
-    links.push('Et la fatigue n’arrange rien : quand on est à plat, la séance passe toujours en dernier. Pourtant, bouger régulièrement est souvent ce qui aide le plus à retrouver de l’énergie.')
-  if (stressed && !tired)
-    links.push('Et le stress joue aussi : quand la tête est pleine, le sport passe en dernier, alors que c’est souvent ce qui aide le plus à décompresser.')
+  if (a.pratique === 'periodes' && lache.includes('motivation') && profile !== 'irregulier')
+    links.push('Et ce n’est pas un hasard si votre motivation retombe : en démarrant à fond, on s’épuise vite, et la moindre semaine chargée suffit à tout arrêter.')
+  if (lache.includes('temps') && profile !== 'temps')
+    links.push('Et le manque de temps joue aussi : tant que le sport attend « un moment de libre », il passe après tout le reste. Deux créneaux fixes changent tout.')
   if (lache.includes('seul') && profile !== 'motivation')
     links.push('Et ce n’est pas un hasard si vous avez lâché les fois précédentes : sans personne pour vous guider ni vous attendre, la moindre semaine chargée suffit à tout arrêter.')
   if (a.salle === 'perdu' && profile !== 'savoir')
@@ -702,21 +616,19 @@ export function buildResult(a: Answers): BilanResult {
     links.push('À votre âge, le renforcement musculaire devient encore plus précieux : c’est lui qui aide à garder force, équilibre et énergie.')
   if (corps.includes('dos') && profile !== 'douleurs')
     links.push('Et votre dos doit faire partie du plan : un renforcement doux et bien guidé (gainage, posture, mobilité), sans jamais forcer sur la douleur.')
-  if (foodIssue && a.objectif === 'perte' && profile !== 'assiette')
-    links.push('Et pour perdre du poids, l’assiette compte autant que la salle : vos efforts doivent être soutenus par quelques repères simples à table.')
 
   // --- Vos erreurs (celles liées à ses problèmes d'abord) -------------------
   const errs: { tag: ProfileId; text: string }[] = []
   const err = (tag: ProfileId, text: string) => errs.push({ tag, text })
-  if (a.rythme === 'fond')
+  if (a.pratique === 'periodes')
     err('irregulier', 'Démarrer trop fort. Cinq séances la première semaine, plus rien la troisième : ni le corps ni l’emploi du temps ne suivent.')
-  if (a.rythme === 'quand_temps' || a.pratique === 'irregulier' || lache.includes('temps'))
+  if (a.pratique === 'quand_temps' || lache.includes('temps'))
     err('temps', 'Attendre d’avoir le temps. Sans créneau fixe dans la semaine, la séance passe toujours après le reste.')
   if (creneaux.includes('rien'))
     err('temps', 'Croire qu’il faut de longues séances. 45 minutes, deux fois par semaine, suffisent pour bien démarrer.')
-  if (a.rythme === 'meme' || a.salle === 'routine')
+  if (a.pratique === 'stagne' || a.salle === 'routine')
     err('routine', 'Refaire toujours les mêmes séances. Le corps s’habitue en quelques semaines : sans nouveauté ni progression, il ne change plus.')
-  if (a.rythme === 'hasard' || a.salle === 'perdu')
+  if (a.salle === 'perdu')
     err('savoir', 'S’entraîner au hasard. Sans plan, on fait ce qu’on connaît… pas forcément ce qui sert votre objectif.')
   if (a.salle === 'regard' || a.salle === 'jamais' || lache.includes('place'))
     err('regard', 'Attendre d’être « en forme » pour oser venir. C’est l’inverse : on se sent à sa place après quelques séances, pas avant.')
@@ -726,18 +638,12 @@ export function buildResult(a: Answers): BilanResult {
     err('routine', 'Juger trop tôt. Les premiers changements se sentent avant de se voir : beaucoup arrêtent juste avant qu’ils apparaissent.')
   if (pain)
     err('douleurs', 'Arrêter de bouger à cause d’une douleur, ou forcer malgré elle. Les deux entretiennent le problème : il faut un renforcement progressif et adapté.')
-  if (foodIssue && a.objectif === 'perte')
-    err('assiette', 'Compter sur le sport seul pour perdre du poids. Sans ajuster un peu l’assiette, on compense souvent sans s’en rendre compte.')
-  else if (foodIssue && a.objectif === 'muscle')
-    err('assiette', 'Négliger l’assiette. Pour construire du muscle, il faut aussi manger assez, notamment des protéines.')
-  else if (a.assiette === 'sais_pas')
-    err('assiette', 'Manger « au feeling », sans repères adaptés à votre objectif.')
   if (a.pratique === 'pause')
     err('reprise', 'Vouloir reprendre au niveau d’avant. Après une longue pause, il faut quelques semaines de remise en route.')
   if (over45)
     err('age', 'S’entraîner comme à 25 ans… ou ne plus oser forcer du tout. Le bon dosage se situe entre les deux.')
-  if (tired)
-    err('motivation', 'Attendre d’avoir de l’énergie pour bouger. C’est souvent l’inverse : bouger régulièrement aide à en retrouver.')
+  if (a.pratique === 'jamais' && !lache.includes('motivation'))
+    err('motivation', 'Attendre le « bon moment » pour commencer. Il n’arrive jamais tout seul : on le crée en bloquant un premier créneau.')
   const rank = (t: ProfileId) => (detected.includes(t) ? detected.indexOf(t) : 9)
   const errors = errs
     .map((e, i) => ({ ...e, i }))
@@ -789,20 +695,6 @@ export function buildResult(a: Answers): BilanResult {
       text: 'Mieux vaut 2 séances par semaine pendant 6 mois que 5 séances pendant 3 semaines. Commencez plus doucement que vous ne le voudriez, et gardez le même rythme, même les semaines chargées.',
       gym: 'Réservez vos 2 cours de la semaine à l’avance : un cours réservé, c’est un rendez-vous qu’on tient. Et les semaines chargées, la salle reste ouverte de 5h à 23h pour caser une séance courte.',
     },
-    assiette:
-      a.objectif === 'muscle'
-        ? {
-            problem: '« Mon assiette ne suit pas »',
-            title: 'Manger assez pour construire du muscle',
-            text: 'Le muscle se construit à l’entraînement… et à table : des protéines à chaque repas, et assez à manger pour soutenir vos séances. Sans ça, vos efforts en salle ne donnent pas tout ce qu’ils pourraient.',
-            gym: 'La musculation et les cours Body Barre ou Cross-training donnent à votre corps une vraie raison de construire du muscle. Et votre séance d’essai est le bon moment pour en parler avec un coach.',
-          }
-        : {
-            problem: '« Mon assiette ne suit pas »',
-            title: 'Quelques repères simples à table, sans régime',
-            text: 'Pas de privation ni d’aliments interdits : des repas qui calent (protéines, légumes), moins de grignotage et des quantités adaptées. C’est ce qui permet à vos efforts en salle de se voir.',
-            gym: 'Côté entraînement, les cours Burn calories, Cardio Dance et Biking font grimper votre dépense, et la musculation aide à garder votre muscle pendant que vous perdez du poids. Votre séance d’essai est aussi le bon moment pour en parler avec un coach.',
-          },
     douleurs: {
       problem: corps.includes('dos') ? '« J’ai mal au dos »' : '« Une douleur me freine »',
       title: 'Renforcer en douceur, sans forcer sur la douleur',
@@ -934,8 +826,8 @@ const AVIS: Avis[] = [
   { name: 'Charlyne', text: 'Vous souhaitez vous remettre au sport, alors faîtes comme moi. Foncez chez The Gym à Rosières.', tags: ['reprise', 'motivation', 'irregulier'] },
   { name: 'Hélène B.', text: 'Elle est idéale pour s’entraîner seul ou pour suivre un cours collectif. Il y a une diversité de propositions et les coachs sont toujours à l’écoute et attentifs.', tags: ['savoir', 'routine', 'age', 'douleurs'] },
   { name: 'Jean-Louis C.', text: 'C’est un plaisir de s’y rendre plusieurs fois par semaine. On y entre froissé. On en ressort lessivé et repassé. Allez y !', tags: ['motivation', 'irregulier', 'temps', 'age'] },
-  { name: 'Sandrine G.', text: 'Coachs très professionnels et très sympas. Cours collectifs au top. Super bonne ambiance.', tags: ['routine', 'assiette', 'motivation'] },
-  { name: 'Ste F.', text: 'Une salle de sport superbe, des coach très sympas et très professionnels, des cours collectifs challengeant et chouettes! Bref, j’adore et je recommande!', tags: ['irregulier', 'assiette', 'temps'] },
+  { name: 'Sandrine G.', text: 'Coachs très professionnels et très sympas. Cours collectifs au top. Super bonne ambiance.', tags: ['routine', 'motivation', 'savoir'] },
+  { name: 'Ste F.', text: 'Une salle de sport superbe, des coach très sympas et très professionnels, des cours collectifs challengeant et chouettes! Bref, j’adore et je recommande!', tags: ['irregulier', 'temps', 'routine'] },
 ]
 
 /** 2 avis Google proches de ses problèmes. */
@@ -951,7 +843,7 @@ export function pickTestimonials(a: Answers): Testimonial[] {
   const { priscillia, olivier, doyenne } = TEMOIGNAGES
   const corps = asList(a.corps)
   const senior = a.age === '60p' || main === 'age' || main === 'douleurs' || corps.includes('dos')
-  const first = main === 'regard' || main === 'savoir' || main === 'assiette' || a.objectif === 'perte' ? priscillia : olivier
+  const first = main === 'regard' || main === 'savoir' || a.objectif === 'perte' ? priscillia : olivier
   if (senior) return [doyenne, first]
   return first === priscillia ? [priscillia, olivier] : [olivier, priscillia]
 }

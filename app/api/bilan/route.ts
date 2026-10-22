@@ -49,11 +49,16 @@ async function bilan(body: Record<string, unknown>) {
   const prenom = capitalize(clean(body.first_name, 60))
   const telephone = normaliserTel(clean(body.phone, 30))
   const answers = sanitizeAnswers(body.answers)
-  const canal = clean(body.source, 20).toLowerCase()
 
   if (!prenom) return NextResponse.json({ error: 'Indiquez votre prénom.' }, { status: 400 })
   if (!telephone) return NextResponse.json({ error: 'Numéro de téléphone invalide.' }, { status: 400 })
   if (!answers.objectif || !answers.salle) return NextResponse.json({ error: 'Réponses incomplètes.' }, { status: 400 })
+  return NextResponse.json({ id: await enregistrerBilan(prenom, telephone, answers, clean(body.source, 20)) })
+}
+
+/** Crée le prospect (ou met à jour la fiche du même numéro) et renvoie son id. */
+async function enregistrerBilan(prenom: string, telephone: string, answers: ReturnType<typeof sanitizeAnswers>, source: string) {
+  const canal = source.toLowerCase()
 
   const ranked = blockersOf(answers)
   const fiche: BilanFiche = {
@@ -72,7 +77,7 @@ async function bilan(body: Record<string, unknown>) {
     const patch: Partial<Lead> = { diagnostic: { ...fiche, candidature: existant.diagnostic?.candidature ?? null } }
     if (existant.statut === 'Refus') patch.statut = 'Nouveau prospect'
     await updateLead(existant.id, patch)
-    return NextResponse.json({ id: existant.id })
+    return existant.id
   }
 
   const cree = await createLead({
@@ -83,11 +88,11 @@ async function bilan(body: Record<string, unknown>) {
     diagnostic: fiche,
   })
   await notifierNouveauProspect(cree, [`Bilan Forme : ${bilanResume(fiche)}`, `Son bilan : https://crm-thegym.vercel.app/bilan?r=${cree.id}`])
-  return NextResponse.json({ id: cree.id })
+  return cree.id
 }
 
 async function candidature(body: Record<string, unknown>) {
-  const id = clean(body.id, 40)
+  let id = clean(body.id, 40)
   const prenom = capitalize(clean(body.first_name, 60))
   const nom = capitalize(clean(body.last_name, 60))
   const telephone = normaliserTel(clean(body.phone, 30))
@@ -96,10 +101,15 @@ async function candidature(body: Record<string, unknown>) {
     (v): v is string => typeof v === 'string' && RAPPEL.some((r) => r.value === v),
   )
 
-  if (!UUID.test(id)) return NextResponse.json({ error: 'Bilan introuvable.' }, { status: 404 })
   if (!prenom || !nom) return NextResponse.json({ error: 'Indiquez votre prénom et votre nom.' }, { status: 400 })
   if (!telephone) return NextResponse.json({ error: 'Numéro de téléphone invalide.' }, { status: 400 })
   if (email && !emailValide(email)) return NextResponse.json({ error: 'Adresse e-mail invalide.' }, { status: 400 })
+  // Le bilan n'a pas pu être enregistré avant le résultat (réseau, vérification Vercel) : on le crée maintenant.
+  if (!UUID.test(id)) {
+    const answers = sanitizeAnswers(body.answers)
+    if (!answers.objectif || !answers.salle) return NextResponse.json({ error: 'Bilan introuvable.' }, { status: 404 })
+    id = await enregistrerBilan(prenom, telephone, answers, clean(body.source, 20))
+  }
 
   const lead = await getLead(id)
   if (!lead?.diagnostic) return NextResponse.json({ error: 'Bilan introuvable.' }, { status: 404 })

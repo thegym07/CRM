@@ -26,6 +26,31 @@ import {
 
 type Step = 'intro' | number | 'contact' | 'result'
 
+// La protection anti-robots de Vercel peut intercepter un envoi (page « Security Checkpoint »
+// au lieu de notre JSON). Une page rechargée passe la vérification : on garde les réponses
+// le temps du rechargement et on renvoie tout seul.
+class Bloque extends Error {}
+const PENDING = 'bilan-envoi'
+const RETRY = 'bilan-reessai'
+
+async function postBilan(body: Record<string, unknown>) {
+  const res = await fetch('/api/bilan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!(res.headers.get('content-type') ?? '').includes('application/json')) throw new Bloque()
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Une erreur est survenue, réessayez.')
+  return data as { id?: string; ok?: boolean }
+}
+
+const store = {
+  get: (k: string) => { try { return sessionStorage.getItem(k) } catch { return null } },
+  set: (k: string, v: string) => { try { sessionStorage.setItem(k, v) } catch { /* navigation privée */ } },
+  del: (k: string) => { try { sessionStorage.removeItem(k) } catch { /* navigation privée */ } },
+}
+
 const YELLOW = '#F5C800'
 const title = { fontFamily: 'var(--font-bebas), Impact, sans-serif', letterSpacing: '0.02em' } as const
 
@@ -100,6 +125,24 @@ function Bilan() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loadingResult, setLoadingResult] = useState(!!resultId)
+  const [autoSend, setAutoSend] = useState(false)
+
+  // Retour d'un rechargement après blocage : on reprend les réponses et on renvoie.
+  useEffect(() => {
+    if (resultId) return
+    const saved = store.get(PENDING)
+    if (!saved) return
+    store.del(PENDING)
+    try {
+      const p = JSON.parse(saved)
+      setAnswers(p.answers ?? {})
+      setContact(p.contact ?? { first_name: '', phone: '' })
+      setStep('contact')
+      setAutoSend(true)
+    } catch {
+      /* ignoré */
+    }
+  }, [resultId])
 
   // Bilan déjà rempli (lien ?r=) : on recharge les réponses.
   useEffect(() => {
@@ -144,33 +187,52 @@ function Bilan() {
     setTimeout(() => next(i, a), 180)
   }
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const envoyer = async () => {
     setError(null)
     if (!contact.first_name.trim()) return setError('Indiquez votre prénom.')
     if (member) return setStep('result')
     if (contact.phone.replace(/\D/g, '').length < 9) return setError('Indiquez votre numéro de téléphone.')
     setSending(true)
     try {
-      const res = await fetch('/api/bilan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ etape: 'bilan', ...contact, answers, source }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error || 'Une erreur est survenue, réessayez.')
-      setLeadId(body.id)
+      const body = await postBilan({ etape: 'bilan', ...contact, answers, source })
+      store.del(RETRY)
+      setLeadId(body.id ?? null)
       // Lien partageable du bilan (sans renvoyer le formulaire).
       const url = new URL(window.location.href)
-      url.searchParams.set('r', body.id)
+      url.searchParams.set('r', body.id ?? '')
       window.history.replaceState(null, '', url.toString())
       setStep('result')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue, réessayez.')
+      if (err instanceof Bloque && !store.get(RETRY)) {
+        // 1er blocage : on recharge pour passer la vérification, puis on renvoie tout seul.
+        store.set(RETRY, '1')
+        store.set(PENDING, JSON.stringify({ answers, contact }))
+        window.location.reload()
+        return
+      }
+      if (err instanceof Bloque) {
+        // Toujours bloqué : on montre quand même le bilan ; la candidature enregistrera la personne.
+        store.del(RETRY)
+        setStep('result')
+      } else {
+        setError(err instanceof Error ? err.message : 'Une erreur est survenue, réessayez.')
+      }
     } finally {
       setSending(false)
     }
   }
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    envoyer()
+  }
+
+  useEffect(() => {
+    if (!autoSend || step !== 'contact') return
+    setAutoSend(false)
+    envoyer()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSend, step])
 
   if (step === 'intro') {
     return (
@@ -180,7 +242,7 @@ function Bilan() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/bilan/logo.png" alt="THE GYM" className="mx-auto h-24 w-24 rounded-full shadow-md" />
             <p className="inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#F5C800]">
-              🎁 Bilan offert · 3 minutes
+              🎁 Bilan offert · 2 minutes
             </p>
             <h1 className="text-[52px] leading-[0.95] text-black" style={title}>
               Vous stagnez&nbsp;?
@@ -314,6 +376,7 @@ function Bilan() {
       phone={contact.phone}
       answers={answers}
       leadId={leadId}
+      source={source}
       member={member}
       applied={applied}
       onApplied={() => setApplied(true)}
@@ -403,6 +466,7 @@ function Result({
   phone,
   answers,
   leadId,
+  source,
   member,
   applied,
   onApplied,
@@ -411,6 +475,7 @@ function Result({
   phone: string
   answers: Answers
   leadId: string | null
+  source: string | null
   member: boolean
   applied: boolean
   onApplied: () => void
@@ -649,7 +714,15 @@ function Result({
       {member ? (
         <MemberCard />
       ) : (
-        <Candidature firstName={firstName} phone={phone} leadId={leadId} applied={applied} onApplied={onApplied} />
+        <Candidature
+          firstName={firstName}
+          phone={phone}
+          leadId={leadId}
+          answers={answers}
+          source={source}
+          applied={applied}
+          onApplied={onApplied}
+        />
       )}
     </Shell>
   )
@@ -658,7 +731,7 @@ function Result({
 /** Fin du bilan pour un membre : en parler à l'équipe, et le partager à un proche. */
 function MemberCard() {
   const link = 'https://crm-thegym.vercel.app/bilan?src=wa'
-  const message = `J’ai fait le Bilan Forme de THE GYM : en 3 minutes, on découvre ce qui nous bloque et quoi mettre en place. Fais-le, la séance d’essai est offerte 👉 ${link}`
+  const message = `J’ai fait le Bilan Forme de THE GYM : en 2 minutes, on découvre ce qui nous bloque et quoi mettre en place. Fais-le, la séance d’essai est offerte 👉 ${link}`
   return (
     <section className="mt-6 rounded-2xl bg-[#111111] p-6 text-white shadow-lg">
       <h2 className="text-[34px] leading-none" style={{ ...title, color: YELLOW }}>
@@ -682,12 +755,16 @@ function Candidature({
   firstName,
   phone,
   leadId,
+  answers,
+  source,
   applied,
   onApplied,
 }: {
   firstName: string
   phone: string
   leadId: string | null
+  answers: Answers
+  source: string | null
   applied: boolean
   onApplied: () => void
 }) {
@@ -701,19 +778,18 @@ function Candidature({
     setError(null)
     if (!form.first_name.trim() || !form.last_name.trim()) return setError('Indiquez votre prénom et votre nom.')
     if (form.phone.replace(/\D/g, '').length < 9) return setError('Indiquez votre numéro de téléphone.')
-    if (!leadId) return setError('Bilan introuvable, rechargez la page.')
     setSending(true)
     try {
-      const res = await fetch('/api/bilan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ etape: 'candidature', id: leadId, ...form, rappel }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error || 'Une erreur est survenue, réessayez.')
+      await postBilan({ etape: 'candidature', id: leadId, ...form, rappel, answers, source })
       onApplied()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue, réessayez.')
+      setError(
+        err instanceof Bloque
+          ? 'La connexion a été interrompue. Réessayez dans quelques secondes.'
+          : err instanceof Error
+            ? err.message
+            : 'Une erreur est survenue, réessayez.',
+      )
     } finally {
       setSending(false)
     }
