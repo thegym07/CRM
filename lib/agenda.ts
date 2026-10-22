@@ -127,6 +127,33 @@ export async function libererCreneauxDuLead(leadId: string): Promise<void> {
   if (error) console.error('libererCreneauxDuLead:', error.message)
 }
 
+// ── Page perso du coach (/coach/[token]) ──
+
+/** Coach actif correspondant au lien secret, sinon null. */
+export async function getCoachActifByToken(token: string): Promise<Coach | null> {
+  const coach = await getCoachByToken(token)
+  return coach && coach.actif ? coach : null
+}
+
+/** Tous les créneaux d'un coach sur une période. */
+export async function getCreneauxDuCoach(coachId: string, debutISO: string, finISO: string): Promise<Creneau[]> {
+  const { data, error } = await supabase
+    .from('creneaux').select('*')
+    .eq('coach_id', coachId)
+    .gte('debut', debutISO).lt('debut', finISO)
+    .order('debut')
+  if (error) { console.error('getCreneauxDuCoach:', error.message); return [] }
+  return (data ?? []) as Creneau[]
+}
+
+/** Téléphones des prospects (pour afficher « appeler » sur les RDV du coach). */
+export async function getTelephones(leadIds: string[]): Promise<Map<string, string>> {
+  if (leadIds.length === 0) return new Map()
+  const { data, error } = await supabase.from('leads').select('id, telephone').in('id', leadIds)
+  if (error) { console.error('getTelephones:', error.message); return new Map() }
+  return new Map((data ?? []).filter(l => l.telephone).map(l => [l.id as string, l.telephone as string]))
+}
+
 /** RDV bloqués d'un coach (pour le flux iCal). */
 export async function getRdvDuCoach(coachId: string): Promise<Creneau[]> {
   const { data, error } = await supabase

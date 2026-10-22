@@ -15,8 +15,9 @@ const HORIZON_JOURS = 56       // on importe 8 semaines glissantes
 const TRANCHE_MIN = 60         // durée d'un créneau réservable (minutes)
 const TIMEOUT_MS = 8000
 
+// Le mot « Dispo » (ou « Dispos ») isolé : « Indispo » et « Disponible » ne comptent pas
 const estDispo = (summary: unknown) =>
-  typeof summary === 'string' ? /dispo/i.test(summary) : false
+  typeof summary === 'string' ? /(^|[^\p{L}])dispos?([^\p{L}]|$)/iu.test(summary) : false
 
 type Fenetre = { debut: Date; fin: Date }
 
@@ -31,56 +32,88 @@ function decoupe(occ: Fenetre, slots: Fenetre[]) {
   }
 }
 
-/** Synchronise les dispos d'un coach depuis son lien d'agenda. Silencieux en cas d'échec. */
-export async function syncCoachDispos(coach: Coach): Promise<void> {
-  if (!coach.ical_import_url) return
-  try {
-    const url = coach.ical_import_url.trim().replace(/^webcal:\/\//i, 'https://')
-    const data = await Promise.race([
-      ical.async.fromURL(url),
-      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), TIMEOUT_MS)),
-    ])
+export type ResultatSync =
+  | { ok: true; dispos: number; evenements: number }
+  | { ok: false; erreur: string }
 
-    const maintenant = new Date()
-    const horizon = new Date(Date.now() + HORIZON_JOURS * 86400000)
-    const slots: Fenetre[] = []
-    const occupes: Fenetre[] = []   // tous ses AUTRES événements = indisponible
+/** Lit un agenda iCal (Google / iCloud). webcal:// est converti en https://. */
+async function lireAgenda(urlBrute: string) {
+  const url = urlBrute.trim().replace(/^webcal:\/\//i, 'https://')
+  return Promise.race([
+    ical.async.fromURL(url),
+    new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), TIMEOUT_MS)),
+  ])
+}
 
-    for (const ev of Object.values(data)) {
-      if (!ev || (ev as { type?: string }).type !== 'VEVENT') continue
-      const e = ev as {
-        summary?: unknown; start?: Date; end?: Date; status?: string
-        rrule?: { between: (a: Date, b: Date, inc?: boolean) => Date[] }
-        exdate?: Record<string, Date>
+/**
+ * Lit l'agenda et calcule les créneaux réellement disponibles :
+ * événements « Dispo » découpés en tranches, moins tout ce qui chevauche un
+ * autre événement. Les événements marqués « Disponible » (TRANSP:TRANSPARENT)
+ * et les annulés ne bloquent rien.
+ */
+async function analyserAgenda(urlBrute: string): Promise<{ disponibles: Fenetre[]; evenements: number }> {
+  const data = await lireAgenda(urlBrute)
+  const maintenant = new Date()
+  const horizon = new Date(Date.now() + HORIZON_JOURS * 86400000)
+  const slots: Fenetre[] = []
+  const occupes: Fenetre[] = []   // tous ses AUTRES événements = indisponible
+  let evenements = 0
+
+  for (const ev of Object.values(data)) {
+    if (!ev || (ev as { type?: string }).type !== 'VEVENT') continue
+    const e = ev as {
+      summary?: unknown; start?: Date; end?: Date; status?: string; transparency?: string
+      rrule?: { between: (a: Date, b: Date, inc?: boolean) => Date[] }
+      exdate?: Record<string, Date>
+    }
+    if (!e.start || !e.end) continue
+    if (typeof e.status === 'string' && e.status.toUpperCase() === 'CANCELLED') continue
+    const dispo = estDispo(e.summary)
+    if (!dispo && typeof e.transparency === 'string' && e.transparency.toUpperCase() === 'TRANSPARENT') continue
+    const dureeMs = e.end.getTime() - e.start.getTime()
+
+    // Occurrences de l'événement dans la fenêtre (récurrences déroulées)
+    const occurrences: Fenetre[] = []
+    if (e.rrule) {
+      const exclues = new Set(Object.values(e.exdate ?? {}).map(d => d.getTime()))
+      for (const occ of e.rrule.between(maintenant, horizon, true)) {
+        if (exclues.has(occ.getTime())) continue
+        occurrences.push({ debut: occ, fin: new Date(occ.getTime() + dureeMs) })
       }
-      if (!e.start || !e.end) continue
-      if (typeof e.status === 'string' && e.status.toUpperCase() === 'CANCELLED') continue
-      const dispo = estDispo(e.summary)
-      const dureeMs = e.end.getTime() - e.start.getTime()
-
-      // Occurrences de l'événement dans la fenêtre (récurrences déroulées)
-      const occurrences: Fenetre[] = []
-      if (e.rrule) {
-        const exclues = new Set(Object.values(e.exdate ?? {}).map(d => d.getTime()))
-        for (const occ of e.rrule.between(maintenant, horizon, true)) {
-          if (exclues.has(occ.getTime())) continue
-          occurrences.push({ debut: occ, fin: new Date(occ.getTime() + dureeMs) })
-        }
-      } else if (e.end > maintenant && e.start <= horizon) {
-        occurrences.push({ debut: e.start, fin: e.end })
-      }
-
-      for (const occ of occurrences) {
-        if (dispo) decoupe(occ, slots)
-        else occupes.push(occ)
-      }
+    } else if (e.end > maintenant && e.start <= horizon) {
+      occurrences.push({ debut: e.start, fin: e.end })
     }
 
-    // Un créneau « Dispo » chevauché par n'importe quel autre événement saute
-    const chevauche = (s: Fenetre) =>
-      occupes.some(o => s.debut.getTime() < o.fin.getTime() && o.debut.getTime() < s.fin.getTime())
-    const disponibles = slots.filter(s => !chevauche(s))
+    for (const occ of occurrences) {
+      evenements++
+      if (dispo) decoupe(occ, slots)
+      else occupes.push(occ)
+    }
+  }
 
+  // Un créneau « Dispo » chevauché par n'importe quel autre événement saute
+  const chevauche = (s: Fenetre) =>
+    occupes.some(o => s.debut.getTime() < o.fin.getTime() && o.debut.getTime() < s.fin.getTime())
+  return { disponibles: slots.filter(s => s.debut > maintenant && !chevauche(s)), evenements }
+}
+
+/** Vérifie qu'un lien d'agenda est lisible, sans rien écrire en base. */
+export async function testerLienAgenda(url: string): Promise<ResultatSync> {
+  try {
+    const { disponibles, evenements } = await analyserAgenda(url)
+    return { ok: true, dispos: disponibles.length, evenements }
+  } catch (err) {
+    console.error('testerLienAgenda:', err instanceof Error ? err.message : err)
+    return { ok: false, erreur: 'Lien illisible' }
+  }
+}
+
+/** Synchronise les dispos d'un coach depuis son lien d'agenda. Ne lève jamais d'erreur. */
+export async function syncCoachDispos(coach: Coach): Promise<ResultatSync> {
+  if (!coach.ical_import_url) return { ok: false, erreur: 'Aucun agenda connecté' }
+  try {
+    const { disponibles, evenements } = await analyserAgenda(coach.ical_import_url)
+    const maintenant = new Date()
     const voulus = new Map(disponibles.map(s => [s.debut.toISOString(), s]))
 
     // Créneaux importés existants (libres, à venir) de ce coach
@@ -111,8 +144,10 @@ export async function syncCoachDispos(coach: Coach): Promise<void> {
       await supabase.from('creneaux')
         .upsert(aInserer, { onConflict: 'coach_id,debut', ignoreDuplicates: true })
     }
+    return { ok: true, dispos: disponibles.length, evenements }
   } catch (err) {
     console.error(`syncCoachDispos(${coach.nom}):`, err instanceof Error ? err.message : err)
+    return { ok: false, erreur: 'Lien illisible' }
   }
 }
 
