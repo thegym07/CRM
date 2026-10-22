@@ -93,6 +93,8 @@ function Bilan() {
   const [step, setStep] = useState<Step>(resultId ? 'result' : 'intro')
   const [answers, setAnswers] = useState<Answers>({})
   const [contact, setContact] = useState({ first_name: '', phone: '' })
+  // Déjà membre : le bilan s'affiche sans créer de prospect (la commerciale n'appelle pas les adhérents).
+  const [member, setMember] = useState(false)
   const [leadId, setLeadId] = useState<string | null>(resultId)
   const [applied, setApplied] = useState(false)
   const [sending, setSending] = useState(false)
@@ -146,6 +148,7 @@ function Bilan() {
     e.preventDefault()
     setError(null)
     if (!contact.first_name.trim()) return setError('Indiquez votre prénom.')
+    if (member) return setStep('result')
     if (contact.phone.replace(/\D/g, '').length < 9) return setError('Indiquez votre numéro de téléphone.')
     setSending(true)
     try {
@@ -273,15 +276,21 @@ function Bilan() {
         </p>
         <form onSubmit={submit} className="mt-6 space-y-4">
           <Field label="Prénom" value={contact.first_name} onChange={(v) => setContact({ ...contact, first_name: v })} autoComplete="given-name" placeholder="Marie" />
-          <Field
-            label="Téléphone"
-            value={contact.phone}
-            onChange={(v) => setContact({ ...contact, phone: v })}
-            autoComplete="tel"
-            inputMode="tel"
-            type="tel"
-            placeholder="06 12 34 56 78"
-          />
+          {!member && (
+            <Field
+              label="Téléphone"
+              value={contact.phone}
+              onChange={(v) => setContact({ ...contact, phone: v })}
+              autoComplete="tel"
+              inputMode="tel"
+              type="tel"
+              placeholder="06 12 34 56 78"
+            />
+          )}
+          <label className="flex items-center gap-2.5 text-[15px] text-gray-600">
+            <input type="checkbox" checked={member} onChange={(e) => setMember(e.target.checked)} className="h-5 w-5 accent-black" />
+            Je suis déjà membre de THE GYM
+          </label>
           {error && <p className="text-sm font-medium text-red-500">{error}</p>}
           <button type="submit" disabled={sending} className={`${primaryBtn} !mt-6`}>
             {sending ? 'Analyse en cours…' : 'Découvrir mon bilan'} <Chevron />
@@ -305,6 +314,7 @@ function Bilan() {
       phone={contact.phone}
       answers={answers}
       leadId={leadId}
+      member={member}
       applied={applied}
       onApplied={() => setApplied(true)}
     />
@@ -393,6 +403,7 @@ function Result({
   phone,
   answers,
   leadId,
+  member,
   applied,
   onApplied,
 }: {
@@ -400,6 +411,7 @@ function Result({
   phone: string
   answers: Answers
   leadId: string | null
+  member: boolean
   applied: boolean
   onApplied: () => void
 }) {
@@ -634,8 +646,35 @@ function Result({
         </div>
       </section>
 
-      <Candidature firstName={firstName} phone={phone} leadId={leadId} applied={applied} onApplied={onApplied} />
+      {member ? (
+        <MemberCard />
+      ) : (
+        <Candidature firstName={firstName} phone={phone} leadId={leadId} applied={applied} onApplied={onApplied} />
+      )}
     </Shell>
+  )
+}
+
+/** Fin du bilan pour un membre : en parler à l'équipe, et le partager à un proche. */
+function MemberCard() {
+  const link = 'https://crm-thegym.vercel.app/bilan?src=wa'
+  const message = `J’ai fait le Bilan Forme de THE GYM : en 3 minutes, on découvre ce qui nous bloque et quoi mettre en place. Fais-le, la séance d’essai est offerte 👉 ${link}`
+  return (
+    <section className="mt-6 rounded-2xl bg-[#111111] p-6 text-white shadow-lg">
+      <h2 className="text-[34px] leading-none" style={{ ...title, color: YELLOW }}>
+        Vous êtes déjà des nôtres 💪
+      </h2>
+      <p className="mt-3 text-[16px] leading-relaxed text-gray-200">
+        Parlez de votre bilan à un coach ou à l’accueil : on vous aide à mettre ces conseils en place, dès votre prochaine
+        séance.
+      </p>
+      <p className="mt-3 text-[15px] leading-relaxed text-gray-300">
+        Un proche se reconnaît dans ces blocages ? Envoyez-lui le bilan : sa séance d’essai est offerte.
+      </p>
+      <a href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer" className={`${primaryBtn} mt-5`}>
+        Partager le bilan sur WhatsApp
+      </a>
+    </section>
   )
 }
 
