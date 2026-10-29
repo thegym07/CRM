@@ -7,6 +7,7 @@ import DeleteButton from '@/components/DeleteButton'
 import InlineNotes from '@/components/InlineNotes'
 import RelanceDone from '@/components/RelanceDone'
 import type { Lead } from '@/lib/supabase'
+import SourceTag from '@/components/SourceTag'
 
 export const dynamic = 'force-dynamic'
 
@@ -251,6 +252,7 @@ function RelanceRow({ lead, noShowBadge }: { lead: Lead; noShowBadge: boolean })
         <Link href={`/leads/${lead.id}`} className="font-medium text-gray-900 hover:text-[#F5C800] transition-colors">
           {lead.nom}
         </Link>
+        <SourceTag source={lead.source} />
         {noShowBadge && <NoShow lead={lead} />}
         {lead.motif_relance && <span className="block text-xs text-gray-500 mt-0.5">{lead.motif_relance}</span>}
       </td>
@@ -291,6 +293,7 @@ function RelanceCardMobile({ lead, noShowBadge }: { lead: Lead; noShowBadge: boo
           <Link href={`/leads/${lead.id}`} className="font-semibold text-gray-900 hover:text-[#F5C800]">
             {lead.nom}
           </Link>
+          <SourceTag source={lead.source} />
           {noShowBadge && <NoShow lead={lead} />}
           <p className="text-xs mt-0.5">
             <span className="text-gray-400">Dernier contact : </span>

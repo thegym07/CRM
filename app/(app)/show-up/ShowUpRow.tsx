@@ -10,6 +10,7 @@ import InlineDateTime from '@/components/InlineDateTime'
 import CreneauInline from '@/components/CreneauPicker'
 import DeleteButton from '@/components/DeleteButton'
 import { FORMULES, type Lead } from '@/lib/supabase'
+import SourceTag from '@/components/SourceTag'
 
 // Plateau muscu sans date : la date se choisit parmi les dispos coachs
 function DateCell({ lead }: { lead: Lead }) {
@@ -138,6 +139,7 @@ export default function ShowUpRow({ lead, faded }: { lead: Lead; faded: boolean 
         <Link href={`/leads/${lead.id}`} className={`font-medium transition-colors hover:text-[#F5C800] ${present ? 'text-gray-900' : 'text-red-600'}`}>
           {lead.nom}
         </Link>
+        <SourceTag source={lead.source} />
         {lead.activite && <span className="block text-xs text-gray-500 mt-0.5">{lead.activite}</span>}
       </td>
       <td className="px-4 py-3">
@@ -204,6 +206,7 @@ export function ShowUpCard({ lead, faded }: { lead: Lead; faded: boolean }) {
           <Link href={`/leads/${lead.id}`} className={`font-semibold hover:text-[#F5C800] ${present ? 'text-gray-900' : 'text-red-600'}`}>
             {lead.nom}
           </Link>
+          <SourceTag source={lead.source} />
           {lead.activite && <p className="text-xs text-gray-500 mt-0.5">{lead.activite}</p>}
         </div>
         <div className="flex items-center gap-1">

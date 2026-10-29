@@ -8,6 +8,7 @@ import PasInteresseButton from '@/components/PasInteresseButton'
 import CallTracker from '@/components/CallTracker'
 import MobileNotes from '@/components/MobileNotes'
 import BilanResume from '@/components/BilanResume'
+import SourceTag from '@/components/SourceTag'
 
 export const dynamic = 'force-dynamic'
 
@@ -108,6 +109,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   <Link href={`/leads/${lead.id}`} className="font-semibold text-gray-900 hover:text-[#F5C800]">
                     {lead.nom}
                   </Link>
+                  <SourceTag source={lead.source} />
                   {dort(lead) && (
                     <span className="ml-2 text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
                       😴 +48 h
@@ -160,6 +162,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   <td className="px-4 py-3">
                     <Link href={`/leads/${lead.id}`} className="block hover:text-[#F5C800] transition-colors">
                       <span className="font-medium text-gray-900">{lead.nom}</span>
+                      <SourceTag source={lead.source} />
                       {dort(lead) && (
                         <span className="ml-2 text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
                           😴 +48 h

@@ -7,6 +7,7 @@ import LeadForm from '@/components/LeadForm'
 import CallTracker from '@/components/CallTracker'
 import PasInteresseButton from '@/components/PasInteresseButton'
 import BilanResume from '@/components/BilanResume'
+import SourceTag from '@/components/SourceTag'
 
 export default function LeadDetailClient({ lead }: { lead: Lead }) {
   const router = useRouter()
@@ -40,7 +41,7 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
     <div>
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{lead.nom}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{lead.nom}<SourceTag source={lead.source} /></h1>
           <p className="text-gray-500 text-sm mt-0.5">
             Ajouté le {new Date(lead.created_at).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}
           </p>
