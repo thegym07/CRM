@@ -2,12 +2,14 @@
 // Bilan Forme THE GYM (page publique /bilan) : questions, moteur de diagnostic
 // et résultat personnalisé. Partagé page publique + API + CRM.
 //
-// La personne ne choisit pas son « profil » : elle décrit ce qu'elle fait (sa
-// pratique, ce qui la fait lâcher, comment elle se sent en salle…) et le moteur
-// en déduit son VRAI problème par un score (1 principal + 2 secondaires max).
-// Le résultat lui renvoie ses propres mots, explique le mécanisme, liste ses
-// erreurs, puis les leviers à mettre en place, chacun relié à THE GYM, et
-// recommande cours collectifs / musculation / cours doux selon ce qu'elle aime.
+// Cible : des gens qui veulent perdre du poids, se remettre en forme ou se
+// muscler, souvent pas sportifs. La personne décrit ce qu'elle fait (sa
+// pratique, ce qui l'a freinée, comment elle se sent en salle…) et le moteur en
+// déduit ce qui la freine VRAIMENT (1 principal + 2 secondaires max).
+// Résultat court, droit au but : ce qui vous freine en une phrase, vos erreurs,
+// ce qu'il faut mettre en place (chaque levier relié à THE GYM, sans redite),
+// puis le plan à la salle (cours / musculation / cours doux) et la séance
+// d'essai offerte, proposée tôt et en 3 champs.
 //
 // Faits sur la salle : site thegym07.fr (planning, cours, horaires) relevé le
 // 22/10/2026. Rien d'autre n'est affirmé. Vouvoiement, formulations neutres
@@ -26,7 +28,6 @@ export type QuestionId =
   | 'age'
   | 'envie'
   | 'creneaux'
-  | 'quand'
 export type Answers = Partial<Record<QuestionId, string | string[]>>
 
 export interface Question {
@@ -44,13 +45,13 @@ export interface Question {
 export const QUESTIONS: Question[] = [
   {
     id: 'objectif',
-    title: 'Qu’est-ce qui vous amène, avant tout ?',
+    title: 'Quel est votre objectif ?',
     short: 'Objectif',
     options: [
       { value: 'perte', label: 'Perdre du poids' },
-      { value: 'muscle', label: 'Prendre du muscle, me sculpter' },
       { value: 'forme', label: 'Me remettre en forme, retrouver de l’énergie' },
-      { value: 'mieux', label: 'Me sentir mieux : moins de douleurs, de stress, plus de souplesse' },
+      { value: 'muscle', label: 'Me muscler, me tonifier' },
+      { value: 'mieux', label: 'Me sentir mieux : dos, souplesse, stress' },
     ],
   },
   {
@@ -67,43 +68,43 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'pratique',
-    title: 'Le sport et vous, en ce moment ?',
+    title: 'Le sport et vous, aujourd’hui ?',
     sub: 'Choisissez ce qui vous ressemble le plus',
     short: 'Pratique',
     options: [
-      { value: 'stagne', label: 'Je m’entraîne régulièrement… mais je stagne' },
-      { value: 'periodes', label: 'J’en fais par périodes : à fond, puis plus rien' },
-      { value: 'quand_temps', label: 'J’y vais quand j’ai le temps, sans vraie régularité' },
-      { value: 'pause', label: 'J’ai arrêté depuis plusieurs mois (ou années)' },
       { value: 'jamais', label: 'Je n’en ai jamais vraiment fait' },
+      { value: 'pause', label: 'J’ai arrêté depuis plusieurs mois (ou années)' },
+      { value: 'periodes', label: 'J’en fais par périodes : à fond, puis plus rien' },
+      { value: 'quand_temps', label: 'J’y vais quand j’ai le temps, sans régularité' },
+      { value: 'stagne', label: 'Je m’entraîne régulièrement, mais je ne progresse plus' },
     ],
   },
   {
     id: 'salle',
-    title: 'Dans une salle de sport, honnêtement, vous vous sentez…',
+    title: 'Dans une salle de sport, vous vous sentez…',
     short: 'En salle',
     options: [
+      { value: 'jamais', label: 'Je n’y ai jamais mis les pieds' },
       { value: 'perdu', label: 'Je ne sais pas quoi faire, ni comment utiliser les machines' },
       { value: 'regard', label: 'Mal à l’aise : le regard des autres, la peur de mal faire' },
-      { value: 'routine', label: 'À l’aise, mais je tourne en rond' },
+      { value: 'routine', label: 'À l’aise, mais je fais toujours la même chose' },
       { value: 'aise', label: 'À l’aise, je sais ce que je fais' },
-      { value: 'jamais', label: 'Je n’y ai jamais mis les pieds' },
     ],
   },
   {
     id: 'lache',
-    title: 'Les fois précédentes, qu’est-ce qui vous a fait arrêter ?',
+    title: 'Qu’est-ce qui vous a freiné jusqu’ici ?',
     sub: 'Plusieurs réponses possibles',
     multi: true,
-    short: 'Ce qui fait lâcher',
+    short: 'Ce qui freine',
     options: [
-      { value: 'motivation', label: 'La motivation est retombée au bout de quelques semaines' },
-      { value: 'resultats', label: 'Je ne voyais pas de résultats' },
+      { value: 'debut', label: 'Je ne sais pas par où commencer' },
+      { value: 'motivation', label: 'La motivation retombe au bout de quelques semaines' },
       { value: 'temps', label: 'Le travail, la famille, le manque de temps' },
-      { value: 'douleur', label: 'Une douleur ou une blessure' },
+      { value: 'resultats', label: 'Je ne voyais pas de résultats' },
       { value: 'seul', label: 'Personne pour me guider ni me motiver' },
-      { value: 'place', label: 'Je ne me sentais pas à ma place' },
-      { value: 'rien', label: 'Je n’ai jamais vraiment commencé' },
+      { value: 'place', label: 'Je ne me sens pas à ma place en salle' },
+      { value: 'douleur', label: 'Une douleur ou une blessure' },
     ],
   },
   {
@@ -113,10 +114,10 @@ export const QUESTIONS: Question[] = [
     multi: true,
     short: 'Corps',
     options: [
+      { value: 'souffle', label: 'Je m’essouffle vite' },
       { value: 'dos', label: 'J’ai souvent mal au dos' },
       { value: 'articulations', label: 'Une douleur ou une ancienne blessure (genou, épaule…)' },
       { value: 'raide', label: 'Je me sens raide, je manque de souplesse' },
-      { value: 'souffle', label: 'Je m’essouffle vite' },
       { value: 'rien', label: 'Rien de particulier' },
     ],
   },
@@ -133,19 +134,19 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'envie',
-    title: 'Qu’est-ce qui vous donne le plus envie de vous entraîner ?',
+    title: 'Qu’est-ce qui vous donnerait envie de venir ?',
     short: 'Ce qui lui plaît',
     options: [
-      { value: 'groupe', label: 'L’ambiance d’un groupe, la musique, un coach qui mène la séance' },
+      { value: 'groupe', label: 'Un groupe, de la musique, un coach qui mène la séance' },
       { value: 'guide', label: 'Qu’on me dise quoi faire, pas à pas' },
-      { value: 'progres', label: 'Voir mes progrès : plus lourd, plus fort, plus loin' },
-      { value: 'calme', label: 'Être tranquille, à mon rythme, avec mes écouteurs' },
-      { value: 'doux', label: 'Prendre soin de mon corps en douceur : souplesse, posture, respiration' },
+      { value: 'progres', label: 'Voir mes progrès : plus fort, plus tonique' },
+      { value: 'calme', label: 'Être tranquille, à mon rythme' },
+      { value: 'doux', label: 'Du doux : souplesse, posture, respiration' },
     ],
   },
   {
     id: 'creneaux',
-    title: 'Quand pourriez-vous venir vous entraîner ?',
+    title: 'Quand pourriez-vous venir ?',
     sub: 'Plusieurs réponses possibles',
     multi: true,
     short: 'Créneaux',
@@ -157,16 +158,6 @@ export const QUESTIONS: Question[] = [
       { value: 'tard', label: 'Tard le soir' },
       { value: 'weekend', label: 'Le week-end' },
       { value: 'rien', label: 'Honnêtement, je ne vois pas quand' },
-    ],
-  },
-  {
-    id: 'quand',
-    title: 'Quand aimeriez-vous commencer ?',
-    short: 'Démarrage',
-    options: [
-      { value: 'now', label: 'Maintenant, j’en ai assez d’attendre' },
-      { value: 'semaines', label: 'Dans les prochaines semaines' },
-      { value: 'info', label: 'Je ne sais pas encore, je me renseigne' },
     ],
   },
 ]
@@ -185,52 +176,18 @@ export type ProfileId =
   | 'age'
   | 'reprise'
 
-export const PROFILES: Record<ProfileId, { name: string; emoji: string; pitch: string }> = {
-  motivation: {
-    name: 'La Motivation en dents de scie',
-    emoji: '📉',
-    pitch: 'Vous démarrez avec envie… puis la motivation retombe. Ce n’est pas un défaut : sans personne à ses côtés, presque tout le monde finit par lâcher.',
-  },
-  savoir: {
-    name: 'Le Labyrinthe des machines',
-    emoji: '🧭',
-    pitch: 'Vous avez envie de bien faire, mais en salle, vous ne savez pas par où commencer. C’est le blocage le plus courant, et le plus simple à lever.',
-  },
-  regard: {
-    name: 'Le Regard des autres',
-    emoji: '👀',
-    pitch: 'Ce n’est pas l’effort qui vous freine : c’est l’idée d’entrer dans une salle où tout le monde a l’air de savoir. Avec le bon cadre, ce malaise disparaît vite.',
-  },
-  temps: {
-    name: 'L’Agenda plein',
-    emoji: '⏱️',
-    pitch: 'Vous avez envie de vous y mettre, mais vos journées sont déjà pleines. Il ne vous faut pas plus de temps : il vous faut un créneau qui tient.',
-  },
-  routine: {
-    name: 'Le Pilote automatique',
-    emoji: '🔁',
-    pitch: 'Vous faites l’effort d’y aller, mais votre corps ne change plus. Il ne vous demande pas plus d’efforts : il vous demande du nouveau.',
-  },
-  irregulier: {
-    name: 'Le Tout ou rien',
-    emoji: '🎢',
-    pitch: 'Quand vous y allez, c’est à fond… jusqu’au jour où tout s’arrête. Ce qui fait la différence, ce n’est pas l’intensité : c’est la régularité.',
-  },
-  douleurs: {
-    name: 'Le Corps qui proteste',
-    emoji: '🩹',
-    pitch: 'Un dos qui tire, une ancienne blessure, des raideurs : votre corps vous freine. Bien encadré, le renforcement se fait sans le brusquer.',
-  },
-  age: {
-    name: 'Le Corps qui a changé',
-    emoji: '⏳',
-    pitch: 'Votre corps ne réagit plus comme avant. Ce n’est pas trop tard, loin de là : il a juste besoin d’une approche adaptée.',
-  },
-  reprise: {
-    name: 'Le Grand Retour',
-    emoji: '🔄',
-    pitch: 'Le sport, vous connaissez. Mais après une longue pause, reprendre impressionne. Tout l’enjeu : bien redémarrer, sans vous blesser ni vous décourager.',
-  },
+// name : libellé interne (CRM, pour la commerciale). problem : ce que la personne
+// lit en tête de son bilan, en une phrase.
+export const PROFILES: Record<ProfileId, { name: string; emoji: string; problem: string }> = {
+  motivation: { name: 'La Motivation en dents de scie', emoji: '📉', problem: 'Tout repose sur votre motivation… et la motivation ne dure jamais.' },
+  savoir: { name: 'Le Labyrinthe des machines', emoji: '🧭', problem: 'Vous ne savez pas par où commencer, alors vous ne commencez jamais vraiment.' },
+  regard: { name: 'Le Regard des autres', emoji: '👀', problem: 'La peur du regard des autres vous empêche d’oser venir.' },
+  temps: { name: 'L’Agenda plein', emoji: '⏱️', problem: 'Le sport attend « un moment de libre »… qui n’arrive jamais.' },
+  routine: { name: 'Le Pilote automatique', emoji: '🔁', problem: 'Vous refaites les mêmes séances : votre corps ne change plus.' },
+  irregulier: { name: 'Le Tout ou rien', emoji: '🎢', problem: 'Vous démarrez à fond… puis vous arrêtez tout.' },
+  douleurs: { name: 'Le Corps qui proteste', emoji: '🩹', problem: 'Une douleur vous freine, alors vous bougez de moins en moins.' },
+  age: { name: 'Le Corps qui a changé', emoji: '⏳', problem: 'Votre corps a changé : il lui faut une autre approche qu’à 25 ans.' },
+  reprise: { name: 'Le Grand Retour', emoji: '🔄', problem: 'Après une longue pause, vous voulez reprendre trop vite.' },
 }
 
 export const isProfile = (v: unknown): v is ProfileId => typeof v === 'string' && v in PROFILES
@@ -312,6 +269,7 @@ const SCORES: Partial<Record<QuestionId, Record<string, Partial<Record<ProfileId
     jamais: { savoir: 2, regard: 2 },
   },
   lache: {
+    debut: { savoir: 3 },
     motivation: { motivation: 3 },
     resultats: { routine: 2, motivation: 1 },
     temps: { temps: 3 },
@@ -369,70 +327,12 @@ export function blockersOf(a: Answers): ProfileId[] {
 
 // --- Contenu du résultat ------------------------------------------------------
 
-// Ses réponses, reformulées.
-const MIRROR: Partial<Record<QuestionId, Record<string, string>>> = {
-  pratique: {
-    stagne: 'Vous vous entraînez régulièrement… mais vous stagnez.',
-    periodes: 'Vous faites du sport par périodes : à fond, puis plus rien.',
-    quand_temps: 'Vous y allez quand vous avez le temps, sans vraie régularité.',
-    pause: 'Vous avez arrêté le sport depuis plusieurs mois, voire plus.',
-    jamais: 'Le sport n’a jamais vraiment fait partie de votre quotidien.',
-  },
-  salle: {
-    perdu: 'En salle, vous ne savez pas trop quoi faire, ni comment utiliser les machines.',
-    regard: 'En salle, vous êtes mal à l’aise : le regard des autres, la peur de mal faire.',
-    routine: 'En salle, vous êtes à l’aise… mais vous tournez en rond.',
-    jamais: 'Vous n’avez jamais mis les pieds dans une salle de sport.',
-  },
-  lache: {
-    motivation: 'Les fois précédentes, la motivation est retombée au bout de quelques semaines.',
-    resultats: 'Vous avez déjà arrêté parce que les résultats ne venaient pas.',
-    temps: 'Le travail, la famille et le manque de temps ont déjà eu raison de vos séances.',
-    douleur: 'Une douleur ou une blessure vous a déjà fait arrêter.',
-    seul: 'Vous n’aviez personne pour vous guider ni vous motiver.',
-    place: 'Vous ne vous sentiez pas à votre place.',
-  },
-  corps: {
-    dos: 'Vous avez souvent mal au dos.',
-    articulations: 'Une douleur ou une ancienne blessure vous gêne encore.',
-    raide: 'Vous vous sentez raide, vous manquez de souplesse.',
-    souffle: 'Vous vous essoufflez vite.',
-  },
-  age: {
-    '45_59': 'Et vous sentez que votre corps ne réagit plus tout à fait comme avant.',
-    '60p': 'Et parfois, vous vous demandez s’il n’est pas un peu tard pour vous y mettre.',
-  },
-}
-
-// Le mécanisme qui bloque, expliqué simplement.
-const ROOT: Record<ProfileId, string> = {
-  motivation:
-    'Votre problème n’est pas un manque de volonté : c’est que tout repose sur votre motivation. Or la motivation monte et descend chez tout le monde, c’est normal. Les personnes qui tiennent ne sont pas plus motivées que vous : elles ont un rendez-vous fixe, quelqu’un qui les attend, et un cadre qui ne dépend pas de leur humeur du jour.',
-  savoir:
-    'Vous n’avez pas un problème d’envie, mais de repères. Quand on ne sait pas quoi faire en salle, on fait ce qu’on connaît, on tourne autour des mêmes machines, ou on n’ose pas y aller. Résultat : des séances qui n’avancent pas, et l’impression que « ce n’est pas pour vous ». Souvent, quelques séances bien guidées suffisent pour que tout devienne clair.',
-  regard:
-    'Ce qui vous retient n’a rien à voir avec vos capacités : c’est la peur du regard des autres et de ne pas être à la hauteur. C’est l’un des freins les plus fréquents, y compris chez des gens très sportifs. En réalité, en salle, chacun se concentre sur sa propre séance. Ce malaise se dissipe dès qu’on sait quoi faire et qu’on se sent à sa place, souvent en quelques séances seulement.',
-  temps:
-    'Votre problème n’est pas la motivation : c’est votre emploi du temps. Tant que le sport attend « un moment de libre », il passe après tout le reste. Ce qui marche, c’est l’inverse : choisir deux créneaux courts, aux heures où vous êtes vraiment disponible, et les traiter comme un rendez-vous.',
-  routine:
-    'Vous faites l’effort d’y aller, et c’est le plus dur. Mais votre corps s’est habitué : il s’adapte en quelques semaines à ce qu’on lui demande. Sans nouveauté, sans charge ni difficulté qui augmentent progressivement, il n’a plus de raison de changer. Ce n’est pas plus d’efforts qu’il vous faut : c’est un entraînement qui évolue.',
-  irregulier:
-    'Vous ne manquez pas d’énergie : vous la dépensez d’un coup. Démarrer à fond donne de vrais résultats… pendant trois semaines. Puis la fatigue, un imprévu ou une semaine chargée, et tout s’arrête. Le corps progresse avec la régularité, pas avec l’intensité : deux séances par semaine tenues pendant des mois valent bien plus que cinq séances pendant trois semaines.',
-  douleurs:
-    'Une douleur ou une ancienne blessure crée souvent un cercle : on a peur de se faire mal, alors on bouge moins… et le corps perd en force et en mobilité, ce qui n’arrange rien. Le bon chemin passe en général par un renforcement progressif et encadré, qui ne force jamais sur la douleur. Et si elle persiste, l’avis de votre médecin ou d’un kiné reste le premier réflexe.',
-  age:
-    'Avec les années, on perd naturellement un peu de muscle et de souplesse, et le corps récupère moins vite. Ce n’est pas une raison de s’arrêter, c’est même la meilleure raison de s’y mettre : le renforcement musculaire, à bonne dose, aide à garder force, équilibre et énergie. Il faut simplement une approche adaptée, pas les méthodes qu’on suivait à 25 ans.',
-  reprise:
-    'Votre corps n’a pas oublié, il s’est déshabitué. Le piège de la reprise, c’est de vouloir repartir au niveau d’avant : courbatures, fatigue, parfois une petite blessure… et on arrête de nouveau. Une reprise réussie se fait par étapes : deux à trois semaines de remise en route, puis on accélère.',
-}
-
 export interface Fix {
-  /** Le blocage auquel la carte répond, avec ses mots. */
-  problem: string
   /** Ce qu'il faut mettre en place (le « quoi »). */
   title: string
+  /** Pourquoi et comment, en une ou deux phrases courtes. */
   text: string
-  /** Comment THE GYM le met en place (le « comment »). */
+  /** Comment THE GYM le met en place (le « comment »), en une phrase. */
   gym: string
 }
 
@@ -451,9 +351,6 @@ export interface Plan {
 export interface BilanResult {
   profile: ProfileId
   secondaries: ProfileId[]
-  mirror: string[]
-  rootCause: string
-  links: string[]
   errors: string[]
   fixes: Fix[]
   timeline: string | null
@@ -461,26 +358,27 @@ export interface BilanResult {
 }
 
 const TIMELINE_KG: Record<string, [string, string]> = {
-  lt5: ['moins de 5 kg', 'quelques semaines à 2 mois'],
+  lt5: ['moins de 5 kg', '1 à 2 mois'],
   '5_10': ['5 à 10 kg', '2 à 4 mois'],
   '10_20': ['10 à 20 kg', '4 à 8 mois'],
-  gt20: ['plus de 20 kg', '8 mois à un an, parfois un peu plus'],
+  gt20: ['plus de 20 kg', '8 mois à un an'],
 }
 
+// Ordres de grandeur prudents (rythmes généraux, pas des résultats de la salle).
 function timelineOf(a: Answers): string | null {
   switch (a.objectif) {
     case 'perte': {
       const t = TIMELINE_KG[a.kilos as string]
       return t
-        ? `Une perte de poids durable tourne en général autour de 0,5 à 1 kg par semaine. Pour perdre ${t[0]}, comptez donc de l’ordre de ${t[1]}, avec un entraînement régulier et une alimentation adaptée. Chaque personne est différente : c’est un ordre de grandeur, pas une promesse.`
-        : 'Une perte de poids durable tourne en général autour de 0,5 à 1 kg par semaine, avec un entraînement régulier et une alimentation adaptée. Chaque personne est différente : c’est un ordre de grandeur, pas une promesse.'
+        ? `Pour perdre ${t[0]}, comptez de l’ordre de ${t[1]}, à raison de 0,5 à 1 kg par semaine. C’est le rythme d’une perte qui dure.`
+        : 'Comptez de l’ordre de 0,5 à 1 kg par semaine : c’est le rythme d’une perte qui dure.'
     }
     case 'muscle':
-      return 'Avec 2 à 3 séances par semaine, on sent en général les premiers changements en quelques semaines (force, posture), et ils commencent à se voir après 2 à 3 mois de régularité. Chaque personne est différente : c’est un ordre de grandeur, pas une promesse.'
+      return 'Avec 2 à 3 séances par semaine, on se sent plus fort en quelques semaines, et ça commence à se voir après 2 à 3 mois.'
     case 'forme':
-      return 'Avec 2 séances par semaine, la plupart des gens sentent une différence de souffle et d’énergie au bout de 4 à 6 semaines. Chaque personne est différente : c’est un ordre de grandeur, pas une promesse.'
+      return 'Avec 2 séances par semaine, la plupart des gens sentent la différence de souffle et d’énergie en 4 à 6 semaines.'
     case 'mieux':
-      return 'Avec des séances douces et régulières, beaucoup se sentent plus souples et plus détendus au bout de quelques semaines. En cas de douleur qui dure, demandez l’avis de votre médecin : on avance alors à votre rythme.'
+      return 'Avec des séances douces et régulières, on se sent en général plus souple et plus détendu en quelques semaines.'
     default:
       return null
   }
@@ -591,138 +489,126 @@ export function buildResult(a: Answers): BilanResult {
   const over45 = a.age === '45_59' || a.age === '60p'
   const pain = corps.includes('dos') || corps.includes('articulations') || lache.includes('douleur')
 
-  // --- Ce que vous nous avez dit -------------------------------------------
-  const mirror: string[] = []
-  for (const qid of ['pratique', 'salle', 'lache', 'corps', 'age'] as QuestionId[]) {
-    for (const v of asList(a[qid]).slice(0, qid === 'lache' ? 2 : 1)) {
-      const line = MIRROR[qid]?.[v]
-      if (line) mirror.push(line)
-    }
-  }
-
-  // --- Liens entre ses réponses -------------------------------------------
-  const links: string[] = []
-  if (a.pratique === 'periodes' && lache.includes('motivation') && profile !== 'irregulier')
-    links.push('Et ce n’est pas un hasard si votre motivation retombe : en démarrant à fond, on s’épuise vite, et la moindre semaine chargée suffit à tout arrêter.')
-  if (lache.includes('temps') && profile !== 'temps')
-    links.push('Et le manque de temps joue aussi : tant que le sport attend « un moment de libre », il passe après tout le reste. Deux créneaux fixes changent tout.')
-  if (lache.includes('seul') && profile !== 'motivation')
-    links.push('Et ce n’est pas un hasard si vous avez lâché les fois précédentes : sans personne pour vous guider ni vous attendre, la moindre semaine chargée suffit à tout arrêter.')
-  if (a.salle === 'perdu' && profile !== 'savoir')
-    links.push('Et ne pas savoir quoi faire en salle n’aide pas : on y va beaucoup moins volontiers quand on n’a pas de plan.')
-  if (a.pratique === 'pause' && corps.includes('souffle'))
-    links.push('Et ce n’est pas un hasard si vous vous essoufflez vite : après une pause, le souffle est le premier à baisser… et aussi l’un des premiers à revenir.')
-  if (over45 && profile !== 'age')
-    links.push('À votre âge, le renforcement musculaire devient encore plus précieux : c’est lui qui aide à garder force, équilibre et énergie.')
-  if (corps.includes('dos') && profile !== 'douleurs')
-    links.push('Et votre dos doit faire partie du plan : un renforcement doux et bien guidé (gainage, posture, mobilité), sans jamais forcer sur la douleur.')
-
-  // --- Vos erreurs (celles liées à ses problèmes d'abord) -------------------
+  // --- Vos erreurs : une phrase courte chacune, celles de ses problèmes d'abord ---
   const errs: { tag: ProfileId; text: string }[] = []
   const err = (tag: ProfileId, text: string) => errs.push({ tag, text })
-  if (a.pratique === 'periodes')
-    err('irregulier', 'Démarrer trop fort. Cinq séances la première semaine, plus rien la troisième : ni le corps ni l’emploi du temps ne suivent.')
-  if (a.pratique === 'quand_temps' || lache.includes('temps'))
-    err('temps', 'Attendre d’avoir le temps. Sans créneau fixe dans la semaine, la séance passe toujours après le reste.')
-  if (creneaux.includes('rien'))
-    err('temps', 'Croire qu’il faut de longues séances. 45 minutes, deux fois par semaine, suffisent pour bien démarrer.')
-  if (a.pratique === 'stagne' || a.salle === 'routine')
-    err('routine', 'Refaire toujours les mêmes séances. Le corps s’habitue en quelques semaines : sans nouveauté ni progression, il ne change plus.')
-  if (a.salle === 'perdu')
-    err('savoir', 'S’entraîner au hasard. Sans plan, on fait ce qu’on connaît… pas forcément ce qui sert votre objectif.')
   if (a.salle === 'regard' || a.salle === 'jamais' || lache.includes('place'))
-    err('regard', 'Attendre d’être « en forme » pour oser venir. C’est l’inverse : on se sent à sa place après quelques séances, pas avant.')
+    err('regard', 'Attendre d’être « en forme » pour oser venir.')
+  if (a.salle === 'perdu' || lache.includes('debut'))
+    err('savoir', 'S’entraîner au hasard, sans plan clair.')
+  if (a.pratique === 'periodes')
+    err('irregulier', 'Démarrer trop fort, puis tout arrêter.')
+  if (a.pratique === 'quand_temps' || lache.includes('temps') || creneaux.includes('rien'))
+    err('temps', 'Attendre d’avoir le temps au lieu de bloquer un créneau.')
+  if (a.pratique === 'stagne' || a.salle === 'routine')
+    err('routine', 'Refaire toujours les mêmes séances.')
   if (lache.includes('motivation') || lache.includes('seul'))
-    err('motivation', 'Compter sur la motivation. Elle va et vient chez tout le monde : ce qui fait tenir, c’est un rendez-vous et un cadre.')
+    err('motivation', 'Compter sur la motivation pour tenir.')
   if (lache.includes('resultats'))
-    err('routine', 'Juger trop tôt. Les premiers changements se sentent avant de se voir : beaucoup arrêtent juste avant qu’ils apparaissent.')
+    err('routine', 'Juger ses progrès trop tôt, et arrêter juste avant qu’ils arrivent.')
   if (pain)
-    err('douleurs', 'Arrêter de bouger à cause d’une douleur, ou forcer malgré elle. Les deux entretiennent le problème : il faut un renforcement progressif et adapté.')
+    err('douleurs', 'Arrêter de bouger à cause d’une douleur… ou forcer malgré elle.')
   if (a.pratique === 'pause')
-    err('reprise', 'Vouloir reprendre au niveau d’avant. Après une longue pause, il faut quelques semaines de remise en route.')
+    err('reprise', 'Vouloir reprendre au niveau d’avant.')
   if (over45)
-    err('age', 'S’entraîner comme à 25 ans… ou ne plus oser forcer du tout. Le bon dosage se situe entre les deux.')
-  if (a.pratique === 'jamais' && !lache.includes('motivation'))
-    err('motivation', 'Attendre le « bon moment » pour commencer. Il n’arrive jamais tout seul : on le crée en bloquant un premier créneau.')
+    err('age', 'S’entraîner comme à 25 ans, ou ne plus oser forcer du tout.')
+  if (a.pratique === 'jamais' && !lache.includes('debut'))
+    err('motivation', 'Attendre le « bon moment » pour commencer.')
   const rank = (t: ProfileId) => (detected.includes(t) ? detected.indexOf(t) : 9)
-  const errors = errs
-    .map((e, i) => ({ ...e, i }))
-    .sort((x, y) => rank(x.tag) - rank(y.tag) || x.i - y.i)
-    .slice(0, 4)
-    .map((e) => e.text)
+  const errors = Array.from(
+    new Set(
+      errs
+        .map((e, i) => ({ ...e, i }))
+        .sort((x, y) => rank(x.tag) - rank(y.tag) || x.i - y.i)
+        .map((e) => e.text),
+    ),
+  ).slice(0, 3)
 
-  // --- Ce que vous devez mettre en place (un levier par problème) -----------
-  const dispo = creneaux.filter((c) => c !== 'rien')
-  const DISPO: Record<string, string> = {
-    tot: 'tôt le matin', matinee: 'en matinée', midi: 'le midi', soir: 'en fin de journée', tard: 'tard le soir', weekend: 'le week-end',
-  }
-  const dispoText = dispo.length ? ` (pour vous : ${joinFr(dispo.map((c) => DISPO[c]))})` : ''
-
+  // --- Ce qu'il faut mettre en place : un levier par problème ---
+  // Chaque fait sur la salle n'apparaît qu'à un seul endroit (ici ou dans le plan).
   const FIX: Record<ProfileId, Fix> = {
     motivation: {
-      problem: '« Ma motivation retombe »',
-      title: 'Ne plus dépendre de votre motivation',
-      text: 'Remplacez la motivation par un cadre : 2 rendez-vous fixes par semaine, quelqu’un qui mène la séance, et des gens qui vous attendent. La motivation finit par suivre, pas l’inverse.',
-      gym: 'Plus de 30 h de cours collectifs par semaine, encadrés par nos coachs diplômés : vous réservez votre place, le coach mène la séance, le groupe vous entraîne. Vous n’avez plus qu’à venir.',
+      title: 'Remplacer la motivation par un rendez-vous',
+      text: '2 séances fixes par semaine, quelqu’un qui mène, un groupe qui vous attend. La motivation suit, pas l’inverse.',
+      gym: 'Vous réservez votre cours, le coach mène la séance : vous n’avez plus qu’à venir.',
     },
     savoir: {
-      problem: '« Je ne sais pas quoi faire en salle »',
-      title: 'Avoir un plan clair, dès la première séance',
-      text: 'Avant de chercher à en faire plus, sachez quoi faire : quelques exercices de base bien maîtrisés, dans le bon ordre, adaptés à votre objectif. C’est ce qui transforme une séance « au hasard » en séance utile.',
-      gym: 'Votre séance d’essai se fait avec un coach : il vous montre les machines, les bons gestes et par où commencer. Et en cours collectif, vous n’avez rien à prévoir : le coach vous guide du début à la fin, à votre niveau.',
+      title: 'Avoir un plan clair dès la première séance',
+      text: 'Quelques exercices de base, bien faits, dans le bon ordre. C’est tout ce qu’il faut pour démarrer.',
+      gym: 'Votre séance d’essai se fait avec un coach : il vous montre les machines et par où commencer.',
     },
     regard: {
-      problem: '« J’ai peur du regard des autres »',
-      title: 'Commencer dans un cadre où vous vous sentez à votre place',
-      text: 'Le malaise disparaît avec les repères : savoir quoi faire, avoir quelqu’un pour vous guider, voir que d’autres débutent aussi. Commencez avec quelqu’un à vos côtés, plutôt qu’en solo au milieu des machines.',
-      gym: 'Ici, tous les niveaux sont bienvenus, sans jugement. En cours collectif, chacun suit le coach à son rythme. Et pour la musculation, la salle est ouverte de 5h à 23h : vous pouvez aussi venir aux heures calmes.',
+      title: 'Commencer avec un coach à vos côtés',
+      text: 'On se sent à sa place quand on sait quoi faire. Ça vient en quelques séances, pas avant.',
+      gym: 'Tous niveaux, sans jugement : en cours, chacun suit le coach à son rythme.',
     },
     temps: {
-      problem: '« Je n’ai pas le temps »',
-      title: 'Bloquer 2 créneaux courts, aux bonnes heures',
-      text: `Pas besoin d’y passer des heures : 2 séances de 45 minutes par semaine suffisent pour démarrer. Le secret, c’est de les placer là où vous êtes vraiment disponible${dispoText}, et de les traiter comme un rendez-vous.`,
-      gym: 'La musculation est en accès libre 7j/7, de 5h à 23h : avant le travail, le midi ou tard le soir. Et les cours ont lieu en matinée (9h15, 10h15) et en fin de journée (17h30, 18h30, 19h30).',
+      title: 'Bloquer 2 créneaux courts',
+      text: '45 minutes, deux fois par semaine, suffisent pour démarrer. Placez-les comme un rendez-vous.',
+      gym: 'Musculation en accès libre 7j/7 de 5h à 23h : avant le travail, le midi ou tard le soir.',
     },
     routine: {
-      problem: '« Je stagne »',
       title: 'Faire évoluer votre entraînement',
-      text: 'Pour que le corps continue de changer, il faut lui en demander un peu plus, progressivement : des charges ou une difficulté qui augmentent, de nouveaux exercices, un programme qui change régulièrement.',
-      gym: 'Un plateau de musculation complet (machines, poids libres) pour faire progresser vos charges, et les cours Training (TRX, Cross-training, Biking) pour bousculer vos habitudes. Envie d’un programme construit pour vous ? Nos coachs proposent aussi du coaching individuel.',
+      text: 'Le corps change quand on lui en demande un peu plus : plus de charge, de nouveaux exercices.',
+      gym: 'Les cours Training (TRX, Cross-training, Biking) pour casser la routine.',
     },
     irregulier: {
-      problem: '« C’est tout ou rien »',
-      title: 'Viser la régularité plutôt que l’intensité',
-      text: 'Mieux vaut 2 séances par semaine pendant 6 mois que 5 séances pendant 3 semaines. Commencez plus doucement que vous ne le voudriez, et gardez le même rythme, même les semaines chargées.',
-      gym: 'Réservez vos 2 cours de la semaine à l’avance : un cours réservé, c’est un rendez-vous qu’on tient. Et les semaines chargées, la salle reste ouverte de 5h à 23h pour caser une séance courte.',
+      title: 'Viser la régularité, pas l’intensité',
+      text: '2 séances par semaine pendant 6 mois valent mieux que 5 séances pendant 3 semaines.',
+      gym: 'Réservez vos 2 cours à l’avance : un cours réservé, on y va.',
     },
     douleurs: {
-      problem: corps.includes('dos') ? '« J’ai mal au dos »' : '« Une douleur me freine »',
       title: 'Renforcer en douceur, sans forcer sur la douleur',
-      text: 'Le gainage, la mobilité et un renforcement progressif sont souvent la meilleure base, à condition de ne jamais forcer sur la douleur. Si elle persiste, demandez l’avis de votre médecin ou d’un kiné avant de reprendre.',
-      gym: 'Pilates, Swissball renfo, Stretching & mobilité, Yoga : des cours doux, encadrés par des coachs diplômés, pour renforcer en profondeur et gagner en mobilité. Signalez votre douleur au coach dès la première séance.',
+      text: 'Gainage, mobilité, renforcement progressif. Si la douleur persiste, demandez l’avis de votre médecin.',
+      gym: 'Pilates, Swissball renfo, Stretching & mobilité : encadrés par des coachs diplômés.',
     },
     age: {
-      problem: '« Mon corps a changé »',
-      title: 'Miser sur le renforcement musculaire, à bonne dose',
-      text: 'Avec les années, garder son muscle devient la priorité : 2 séances de renforcement par semaine, progressives, complétées par de la mobilité. C’est ce qui aide à garder force, souplesse et énergie.',
-      gym: 'Body Barre, Pilates, Swissball renfo, Stretching & mobilité… et la musculation, à votre rythme. L’une de nos adhérentes a 95 ans et s’entraîne deux fois par semaine : il n’y a pas d’âge pour commencer.',
+      title: 'Miser sur le renforcement, à bonne dose',
+      text: 'Avec les années, garder son muscle devient la priorité : 2 séances progressives par semaine.',
+      gym: 'Body Barre et renforcement accessibles à tous les niveaux, à votre rythme.',
     },
     reprise: {
-      problem: '« Je reprends après une longue pause »',
       title: 'Reprendre par étapes',
-      text: 'Les 2 à 3 premières semaines, l’objectif est simple : reprendre l’habitude, pas battre des records. Des séances modérées, deux fois par semaine, puis on augmente progressivement.',
-      gym: 'Commencez par des cours accessibles comme Body Tonic, CAF ou Stretching, à votre rythme, puis passez à la musculation ou aux cours Training quand votre corps suit.',
+      text: '2 à 3 semaines pour reprendre l’habitude, puis on augmente. Pas de record au début.',
+      gym: 'Commencez par Body Tonic ou CAF, puis montez en intensité quand votre corps suit.',
     },
   }
+
+  // Un levier lié à l'objectif quand il y en a peu, sans répéter un levier déjà affiché.
+  const debutant = a.pratique === 'jamais' || a.pratique === 'pause'
+  const OBJECTIF: Record<string, Fix & { saufSi?: ProfileId }> = {
+    perte: {
+      title: 'Combiner cardio et renforcement',
+      text: 'Le cardio fait dépenser, le renforcement garde le muscle et affine la silhouette. Les deux ensemble, c’est ce qui marche.',
+      gym: debutant ? 'Cardio Dance, Burn calories et Biking pour le cardio, Body Barre pour le renfo.' : 'Burn calories, Tabata et Biking pour le cardio, la musculation pour le renfo.',
+    },
+    forme: {
+      title: 'Bouger 2 fois par semaine, en variant',
+      text: 'Un peu de cardio pour le souffle, un peu de renfo pour le corps : c’est la base d’une forme qui revient.',
+      gym: 'Body Tonic et Mix Training mélangent les deux en une seule séance.',
+    },
+    muscle: {
+      title: 'Progresser en charge, pas à pas',
+      text: '2 à 3 séances par semaine, avec des charges qui augmentent petit à petit, et du repos entre les deux.',
+      gym: 'Body Barre et les cours Training complètent la musculation.',
+      saufSi: 'routine',
+    },
+    mieux: {
+      title: 'Allier mobilité et renforcement doux',
+      text: 'Un peu de souplesse et de gainage chaque semaine : le corps se détend et se tient mieux.',
+      gym: 'Pilates, Yoga et Stretching & mobilité, encadrés par nos coachs.',
+      saufSi: 'douleurs',
+    },
+  }
+  const fixes = detected.map((p) => FIX[p])
+  const obj = OBJECTIF[a.objectif as string]
+  if (obj && fixes.length < 3 && !(obj.saufSi && detected.includes(obj.saufSi))) fixes.push({ title: obj.title, text: obj.text, gym: obj.gym })
 
   return {
     profile,
     secondaries,
-    mirror,
-    rootCause: ROOT[profile],
-    links: links.slice(0, 2),
     errors,
-    fixes: detected.map((p) => FIX[p]),
+    fixes,
     timeline: timelineOf(a),
     plan: buildPlan(a, detected),
   }
@@ -759,15 +645,6 @@ export function sanitizeAnswers(input: unknown): Answers {
   return out
 }
 
-// --- Rappel par la commerciale ----------------------------------------------
-
-export const RAPPEL: { value: string; label: string }[] = [
-  { value: 'matin', label: 'Le matin (9h-12h)' },
-  { value: 'midi', label: 'Le midi (12h-14h)' },
-  { value: 'aprem', label: 'L’après-midi (14h-17h)' },
-  { value: 'soir', label: 'En fin de journée (17h-19h30)' },
-]
-
 /** Ce qui est stocké sur le prospect (colonne `leads.diagnostic`). */
 export interface BilanFiche {
   answers: Answers
@@ -775,7 +652,7 @@ export interface BilanFiche {
   secondaries: ProfileId[]
   src: string | null
   at: string
-  candidature?: { at: string; rappel: string[] } | null
+  candidature?: { at: string; rappel?: string[] } | null
 }
 
 // --- Témoignages (vrais, publiés sur @the.gym.rosieres) ----------------------
@@ -848,16 +725,10 @@ export function pickTestimonials(a: Answers): Testimonial[] {
   return first === priscillia ? [priscillia, olivier] : [olivier, priscillia]
 }
 
-/** Ligne de synthèse pour la commerciale : profil · objectif · démarrage. */
+/** Ligne de synthèse pour la commerciale : profil · objectif (kilos). */
 export function bilanResume(fiche: Pick<BilanFiche, 'answers' | 'profile'>): string {
   const p = isProfile(fiche.profile) ? PROFILES[fiche.profile] : null
   const objectif = answerLabel(fiche.answers, 'objectif', true)
-  const quand = ({ now: 'veut commencer maintenant', semaines: 'dans les semaines à venir', info: 'se renseigne' } as Record<string, string>)[
-    fiche.answers.quand as string
-  ]
-  return [p ? `${p.emoji} ${p.name}` : null, objectif, quand].filter(Boolean).join(' · ')
+  const kilos = answerLabel(fiche.answers, 'kilos')
+  return [p ? `${p.emoji} ${p.name}` : null, objectif && kilos ? `${objectif} (${kilos})` : objectif].filter(Boolean).join(' · ')
 }
-
-/** Créneaux de rappel lisibles (« le matin, en fin de journée »). */
-export const rappelLabel = (values: string[]) =>
-  joinFr(values.map((v) => RAPPEL.find((r) => r.value === v)?.label.split(' (')[0].toLowerCase()).filter((l): l is string => !!l))

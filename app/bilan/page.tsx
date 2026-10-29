@@ -6,7 +6,6 @@ import {
   GOOGLE,
   INSTAGRAM,
   PROFILES,
-  RAPPEL,
   buildResult,
   coursDesc,
   pickAvis,
@@ -18,8 +17,9 @@ import {
 
 // =============================================================================
 // Bilan Forme THE GYM — page PUBLIQUE (WhatsApp, Instagram, story, bio, pubs).
-// Accueil → questions → prénom + téléphone → bilan personnalisé → candidature
-// à la séance d'essai offerte. La salle n'apparaît qu'à la fin du bilan.
+// Accueil → questions → prénom + téléphone → bilan court (ce qui vous freine,
+// erreurs, quoi mettre en place, plan à la salle) avec la séance d'essai
+// offerte proposée tôt et à la fin (prénom, nom, téléphone).
 // ?src=wa|ig|story|bio|ads : canal d'origine, noté sur la fiche du prospect.
 // ?r=<id> : réaffiche le bilan déjà rempli (lien ouvert depuis le CRM).
 // =============================================================================
@@ -244,38 +244,32 @@ function Bilan() {
             <p className="inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#F5C800]">
               🎁 Bilan offert · 2 minutes
             </p>
-            <h1 className="text-[52px] leading-[0.95] text-black" style={title}>
-              Vous stagnez&nbsp;?
+            <h1 className="text-[42px] leading-[0.95] text-black" style={title}>
+              Perdre du poids, vous remettre en forme, vous muscler&nbsp;?
             </h1>
             <p className="text-[17px] leading-relaxed text-gray-700">
-              Répondez à ces quelques questions pour découvrir <span className="font-bold text-black">vos erreurs</span>,{' '}
-              <span className="font-bold text-black">ce qui vous bloque</span> et{' '}
-              <span className="font-bold text-black">ce que vous devez mettre en place</span> pour avancer enfin.
+              En quelques questions, découvrez <span className="font-bold text-black">ce qui vous freine</span> et{' '}
+              <span className="font-bold text-black">ce qu’il faut mettre en place</span> pour y arriver, enfin.
             </p>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <p className="font-bold text-black">À la fin, vous saurez :</p>
-            <ul className="mt-3 space-y-2.5 text-[15px] text-gray-700">
-              {[
-                'Les erreurs qui vous freinent, et pourquoi vos tentatives précédentes n’ont pas tenu',
-                'Ce que vous devez mettre en place, adapté à votre quotidien et à vos horaires',
-                'En combien de temps votre objectif est réaliste',
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F5C800] text-black">
-                    <Check className="h-3 w-3" />
-                  </span>
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <ul className="space-y-2.5 rounded-2xl border border-gray-200 bg-white p-5 text-[15px] text-gray-700 shadow-sm">
+            {[
+              'Ce qui vous freine vraiment (et non, ce n’est pas la volonté)',
+              'Ce qu’il faut faire pour vous, selon votre objectif et vos horaires',
+              'En combien de temps votre objectif est réaliste',
+            ].map((t) => (
+              <li key={t} className="flex items-start gap-2.5">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F5C800] text-black">
+                  <Check className="h-3 w-3" />
+                </span>
+                {t}
+              </li>
+            ))}
+          </ul>
           <button type="button" onClick={() => setStep(0)} className={primaryBtn}>
-            Je fais mon bilan <Chevron />
+            Je fais mon bilan gratuit <Chevron />
           </button>
-          <p className="-mt-3 text-center text-sm text-gray-400">
-            Pas de jugement, pas de promesse miracle : juste un point honnête sur votre situation.
-          </p>
+          <p className="-mt-3 text-center text-sm text-gray-400">Que vous débutiez ou non, sans jugement.</p>
         </div>
       </Shell>
     )
@@ -333,8 +327,7 @@ function Bilan() {
         <Back onClick={() => setStep(total - 1)} />
         <h2 className="text-[22px] font-bold leading-snug text-black">Votre bilan est prêt ✨</h2>
         <p className="mt-1 text-[15px] leading-relaxed text-gray-600">
-          Nous avons identifié ce qui vous bloque et ce que vous devez mettre en place. Indiquez votre prénom et votre
-          numéro pour le découvrir : l’équipe pourra aussi répondre à vos questions.
+          Indiquez votre prénom et votre numéro pour découvrir ce qui vous freine et ce qu’il faut mettre en place.
         </p>
         <form onSubmit={submit} className="mt-6 space-y-4">
           <Field label="Prénom" value={contact.first_name} onChange={(v) => setContact({ ...contact, first_name: v })} autoComplete="given-name" placeholder="Marie" />
@@ -444,22 +437,12 @@ function ReelEmbed({ url }: { url: string }) {
 }
 
 const TRACKS: Record<Track, { emoji: string; name: string; text: string }> = {
-  cours: {
-    emoji: '🔥',
-    name: 'Les cours collectifs',
-    text: 'Plus de 30 h de cours par semaine, encadrés par nos coachs diplômés : vous réservez, le coach mène la séance, le groupe vous entraîne.',
-  },
-  doux: {
-    emoji: '🧘',
-    name: 'Les cours doux',
-    text: 'Pilates, Yoga, Stretching, Swissball : du renforcement en profondeur et de la mobilité, sans brusquer votre corps.',
-  },
-  muscu: {
-    emoji: '🏋️',
-    name: 'L’espace musculation',
-    text: 'Machines et poids libres, en accès libre 7j/7 de 5h à 23h : vous venez à l’heure qui vous arrange, à votre rythme.',
-  },
+  cours: { emoji: '🔥', name: 'Les cours collectifs', text: 'Plus de 30 h par semaine, encadrés par nos coachs diplômés.' },
+  doux: { emoji: '🧘', name: 'Les cours doux', text: 'Pour renforcer en profondeur et gagner en souplesse, sans brusquer le corps.' },
+  muscu: { emoji: '🏋️', name: 'L’espace musculation', text: 'Machines et poids libres, à votre rythme.' },
 }
+
+type Coordonnees = { first_name: string; last_name: string; phone: string }
 
 function Result({
   firstName,
@@ -481,111 +464,78 @@ function Result({
   onApplied: () => void
 }) {
   const result = useMemo(() => buildResult(answers), [answers])
-  const testimonials = useMemo(() => pickTestimonials(answers), [answers])
-  const avis = useMemo(() => pickAvis(answers), [answers])
-  const others = result.secondaries.map((b) => PROFILES[b].name)
+  const [temoignage, autre] = useMemo(() => pickTestimonials(answers), [answers])
+  const [avis] = useMemo(() => pickAvis(answers), [answers])
   const profile = PROFILES[result.profile]
+  const others = result.secondaries.map((b) => PROFILES[b].problem)
   const name = firstName.trim().split(' ')[0]
   const { plan } = result
-
-  const scrollTo = (id: string) => (e: React.MouseEvent) => {
-    e.preventDefault()
-    // Défilement explicite : l'ancre seule ne marche pas partout (navigateurs intégrés Instagram…).
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  // Les horaires d'ouverture ne sont dits qu'une fois : dans le levier « temps » s'il est là, sinon dans le plan.
+  const horaires = !result.secondaries.concat(result.profile).includes('temps')
+  // Coordonnées partagées par les deux formulaires d'essai (haut et bas de page).
+  const [coord, setCoord] = useState<Coordonnees>({ first_name: name, last_name: '', phone })
+  const essai = { coord, setCoord, leadId, answers, source, applied, onApplied }
 
   return (
     <Shell subtitle={name ? `Le bilan de ${name}` : 'Votre bilan'}>
-      {/* Profil */}
-      <section className="rounded-2xl bg-[#111111] px-5 py-7 text-center text-white shadow-lg">
-        <p className="text-sm font-medium text-gray-400">{name ? `${name}, votre profil :` : 'Votre profil :'}</p>
-        <div className="mx-auto mt-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#F5C800] text-3xl">{profile.emoji}</div>
-        <h1 className="mt-3 text-[40px] leading-[0.95]" style={{ ...title, color: YELLOW }}>
-          {profile.name}
+      {/* Ce qui vous freine, en une phrase */}
+      <section className="rounded-2xl bg-[#111111] px-5 py-6 text-white shadow-lg">
+        <p className="text-sm font-medium text-gray-400">{name ? `${name}, voici ce qui vous freine :` : 'Voici ce qui vous freine :'}</p>
+        <h1 className="mt-2 text-[22px] font-bold leading-snug" style={{ color: YELLOW }}>
+          {profile.emoji} {profile.problem}
         </h1>
-        {others.length > 0 && <p className="mt-2 text-sm text-gray-400">et aussi : {others.join(', ')}</p>}
-        <p className="mt-3 text-[16px] leading-relaxed text-gray-200">{profile.pitch}</p>
-      </section>
-
-      {/* Rassurer d'emblée, avant de parler des erreurs */}
-      {result.timeline && (
-        <section className="mt-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-black">✅ Votre objectif est réaliste</h2>
-          <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{result.timeline}</p>
-        </section>
-      )}
-
-      <div className="mt-5 rounded-xl border-l-4 border-[#F5C800] bg-white px-4 py-3.5 text-[15px] text-gray-800 shadow-sm">
-        <p className="font-bold text-black">Votre diagnostic en 3 temps :</p>
-        <ol className="mt-2 space-y-1">
-          <li>① Vos erreurs, et ce qui vous bloque</li>
-          <li>② Ce que vous devez mettre en place</li>
-          <li>③ Comment le mettre en place</li>
-        </ol>
-      </div>
-
-      {/* ① Ce qui bloque */}
-      <section className="mt-9">
-        <StepTitle n={1}>Vos erreurs, et ce qui vous bloque</StepTitle>
-
-        {result.mirror.length > 0 && (
-          <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-bold text-black">Ce que vous nous avez dit :</p>
-            <ul className="mt-2.5 space-y-2">
-              {result.mirror.map((m) => (
-                <li key={m} className="border-l-2 border-[#F5C800] pl-3 text-[15px] italic leading-relaxed text-gray-700">
-                  {m}
-                </li>
+        {others.length > 0 && (
+          <div className="mt-4 border-t border-white/15 pt-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Et aussi :</p>
+            <ul className="mt-1.5 space-y-1">
+              {others.map((o) => (
+                <li key={o} className="text-[15px] leading-snug text-gray-200">• {o}</li>
               ))}
             </ul>
           </div>
         )}
-
-        <div className="mt-4 rounded-2xl border-2 border-[#F5C800] bg-[#FFF9DB] p-5">
-          <p className="text-sm font-bold uppercase tracking-wide text-black">Votre vrai problème</p>
-          <p className="mt-2 text-[15px] leading-relaxed text-gray-800">{result.rootCause}</p>
-          {result.links.map((l) => (
-            <p key={l} className="mt-3 text-[15px] leading-relaxed text-gray-800">
-              {l}
-            </p>
-          ))}
-        </div>
-
-        {result.errors.length > 0 && (
-          <div className="mt-5">
-            <p className="text-[16px] font-bold text-black">Les erreurs qui vous freinent aujourd’hui :</p>
-            <ol className="mt-3 space-y-2.5">
-              {result.errors.map((e, i) => (
-                <li key={e} className="rounded-xl border border-gray-200 bg-white px-4 py-3.5 shadow-sm">
-                  <span className="block text-sm font-bold text-red-500">Erreur n°{i + 1}</span>
-                  <span className="text-[15px] leading-relaxed text-gray-700">{e}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-        <p className="mt-4 text-[16px] font-bold leading-snug text-black">
-          Bonne nouvelle : rien de tout ça ne vient d’un manque de volonté. Ça se corrige, et voici comment.
-        </p>
+        <p className="mt-4 text-[15px] font-semibold text-white">Ce n’est pas un manque de volonté. Ça se corrige.</p>
       </section>
 
-      {/* ② Les leviers */}
-      <section className="mt-10">
-        <StepTitle n={2}>Ce que vous devez mettre en place</StepTitle>
-        <p className="mt-2 text-sm text-gray-500">Selon vos réponses, voici ce qui va faire la différence pour vous.</p>
-        <div className="mt-4 space-y-4">
+      {result.timeline && (
+        <section className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="font-bold text-black">✅ Votre objectif est réaliste</h2>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-gray-600">{result.timeline}</p>
+        </section>
+      )}
+
+      {!member && <Essai {...essai} compact />}
+
+      {/* ① Erreurs */}
+      {result.errors.length > 0 && (
+        <section className="mt-9">
+          <StepTitle n={1}>Vos erreurs</StepTitle>
+          <ul className="mt-3 space-y-2">
+            {result.errors.map((e) => (
+              <li key={e} className="flex gap-2.5 rounded-xl border border-gray-200 bg-white px-4 py-3 text-[15px] leading-snug text-gray-800 shadow-sm">
+                <span className="shrink-0">❌</span>
+                {e}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ② Leviers */}
+      <section className="mt-9">
+        <StepTitle n={result.errors.length > 0 ? 2 : 1}>Ce qu’il faut mettre en place</StepTitle>
+        <div className="mt-3 space-y-3">
           {result.fixes.map((f) => (
-            <article key={f.title} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <p className="text-sm italic text-gray-400">{f.problem}</p>
-              <h3 className="mt-1.5 flex items-start gap-2 text-[18px] font-bold leading-snug text-black">
+            <article key={f.title} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <h3 className="flex items-start gap-2 text-[17px] font-bold leading-snug text-black">
                 <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F5C800] text-black">
                   <Check className="h-3.5 w-3.5" />
                 </span>
                 {f.title}
               </h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{f.text}</p>
-              <p className="mt-3 rounded-xl bg-[#111111] px-4 py-3 text-[14px] leading-relaxed text-gray-200">
-                <span className="font-bold text-[#F5C800]">Avec THE GYM : </span>
+              <p className="mt-1.5 text-[15px] leading-relaxed text-gray-600">{f.text}</p>
+              <p className="mt-2.5 rounded-xl bg-[#111111] px-3.5 py-2.5 text-[14px] leading-snug text-gray-200">
+                <span className="font-bold text-[#F5C800]">À THE GYM : </span>
                 {f.gym}
               </p>
             </article>
@@ -593,137 +543,85 @@ function Result({
         </div>
       </section>
 
-      <div className="mt-6 rounded-2xl bg-[#F5C800] p-5 text-black shadow-lg">
-        <p className="text-[17px] font-bold leading-snug">
-          Vous savez maintenant quoi changer. La vraie question : comment le mettre en place, et le tenir ?
+      {/* ③ Le plan à la salle */}
+      <section className="mt-9">
+        <StepTitle n={result.errors.length > 0 ? 3 : 2}>Votre plan à THE GYM</StepTitle>
+        <p className="mt-2 text-[15px] leading-relaxed text-gray-600">
+          Par vous-même, c’est possible. Avec un coach et un cadre, c’est beaucoup plus simple. Pour vous, on commencerait par :
         </p>
-        <a href="#options" onClick={scrollTo('options')} className="mt-3 inline-flex items-center gap-1 text-sm font-bold underline underline-offset-4">
-          Voir comment on le met en place avec vous <Chevron />
-        </a>
-      </div>
-
-      {/* Témoignages */}
-      <section className="mt-10">
-        <h2 className="text-[30px] leading-none text-black" style={title}>Ils ont fait le premier pas</h2>
-        <div className="mt-4 space-y-4">
-          {testimonials.map((t) => (
-            <figure key={t.name} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <p className="text-[18px] font-bold text-black">{t.result}</p>
-              <figcaption className="text-sm font-semibold text-gray-500">{t.name}</figcaption>
-              <blockquote className="mt-2 text-[15px] leading-relaxed text-gray-600">
-                {t.story}
-                {t.quote && <span className="mt-3 block font-semibold text-black">« {t.quote} »</span>}
-              </blockquote>
-              {t.video ? (
-                <ReelEmbed url={t.url} />
-              ) : (
-                <a href={t.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-semibold text-gray-700 underline">
-                  Voir son histoire sur Instagram
-                </a>
-              )}
-            </figure>
+        <div className="mt-3 space-y-2.5">
+          {plan.tracks.map((t, i) => (
+            <div key={t} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <p className="font-bold text-black">
+                {TRACKS[t].emoji} {TRACKS[t].name}
+                {i > 0 && <span className="font-normal text-gray-500"> · en complément</span>}
+              </p>
+              <p className="mt-0.5 text-[14px] leading-relaxed text-gray-600">
+                {TRACKS[t].text}
+                {t === 'muscu' && horaires && ' En accès libre 7j/7, de 5h à 23h.'}
+              </p>
+            </div>
           ))}
         </div>
+        {plan.cours.length > 0 && (
+          <ul className="mt-3 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
+            {plan.cours.map((c) => (
+              <li key={c.jour + c.heure} className="px-3.5 py-2.5 text-[14px] leading-snug">
+                <span className="font-bold text-black">
+                  {c.jour} {c.heure} · {c.nom}
+                </span>
+                <span className="block text-gray-500">{coursDesc(c.nom)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {plan.muscuHorsCours && !plan.tracks.includes('muscu') && (
+          <p className="mt-3 text-[14px] leading-relaxed text-gray-600">
+            🏋️ Aux autres heures : la musculation en accès libre{horaires ? ', 7j/7 de 5h à 23h' : ''}.
+          </p>
+        )}
+        {plan.coaching && (
+          <p className="mt-2 text-[14px] leading-relaxed text-gray-600">🤝 Envie d’un suivi individuel ? Nos coachs proposent aussi du coaching.</p>
+        )}
+      </section>
 
-        <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      {/* Preuves */}
+      <section className="mt-9">
+        <h2 className="text-[28px] leading-none text-black" style={title}>Ils ont osé le premier pas</h2>
+        <figure className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-[17px] font-bold text-black">{temoignage.result}</p>
+          <figcaption className="text-sm font-semibold text-gray-500">{temoignage.name}</figcaption>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-gray-600">{temoignage.story}</p>
+          {temoignage.video ? (
+            <ReelEmbed url={temoignage.url} />
+          ) : (
+            <a href={temoignage.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-semibold text-gray-700 underline">
+              Voir son histoire sur Instagram
+            </a>
+          )}
+        </figure>
+        {autre && (
+          <p className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 text-[15px] leading-relaxed text-gray-600 shadow-sm">
+            <span className="font-bold text-black">{autre.name} · {autre.result}. </span>
+            {autre.story}
+          </p>
+        )}
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <p className="font-bold text-black">
             <span className="text-[#F5C800]">★★★★★</span> {GOOGLE.note}/5 sur Google · {GOOGLE.avis} avis
           </p>
-          <div className="mt-3 space-y-3">
-            {avis.map((v) => (
-              <blockquote key={v.name} className="border-l-2 border-[#F5C800] pl-3 text-[15px] leading-relaxed text-gray-700">
-                « {v.text} »<span className="mt-1 block text-sm font-semibold not-italic text-gray-500">{v.name}</span>
-              </blockquote>
-            ))}
-          </div>
+          {avis && (
+            <blockquote className="mt-2 border-l-2 border-[#F5C800] pl-3 text-[15px] leading-relaxed text-gray-700">
+              « {avis.text} » <span className="text-sm font-semibold text-gray-500">— {avis.name}</span>
+            </blockquote>
+          )}
         </div>
         <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-semibold text-gray-600">
-          📸 Toute la vie de la salle sur @the.gym.rosieres
+          📸 La vie de la salle sur @the.gym.rosieres
         </a>
       </section>
 
-      {/* ③ Les 2 options */}
-      <section id="options" className="mt-12 scroll-mt-20">
-        <StepTitle n={3}>Comment le mettre en place&nbsp;?</StepTitle>
-        <p className="mt-3 text-[15px] leading-relaxed text-gray-600">
-          {name ? `${name}, vous` : 'Vous'} savez maintenant ce qui vous bloque et ce que vous devez changer. Le plus dur n’est
-          pas de savoir quoi faire : c’est de le faire, semaine après semaine, avec votre vie à côté. Vous avez 2 options :
-        </p>
-        <div className="mt-4 space-y-4">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Option 1</p>
-            <h3 className="mt-1 text-[18px] font-bold text-gray-700">Vous appliquez ces conseils par vous-même</h3>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-gray-500">
-              Trouver vos exercices, fixer vos créneaux, tenir le rythme semaine après semaine, ajuster quand ça stagne…
-              C’est possible, à vous de jouer.
-            </p>
-          </div>
-          <div className="relative rounded-2xl border-2 border-[#F5C800] bg-white p-5 shadow-md">
-            <span className="absolute -top-3 right-4 rounded-full bg-black px-3 py-1 text-xs font-bold text-[#F5C800]">Le plus simple</span>
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Option 2</p>
-            <h3 className="mt-1 text-[18px] font-bold text-black">Avec l’équipe THE GYM, à Rosières</h3>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-gray-700">
-              Des coachs diplômés, plus de 30 h de cours par semaine et une salle ouverte de 5h à 23h, 7j/7. Vous n’avez plus
-              qu’à venir : on vous guide dès le premier jour.
-            </p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/bilan/salle.jpg" alt="La salle THE GYM à Rosières" className="mt-4 h-40 w-full rounded-xl object-cover" />
-
-            <p className="mt-5 font-bold text-black">Pour vous, on commencerait par :</p>
-            <div className="mt-3 space-y-3">
-              {plan.tracks.map((t, i) => (
-                <div key={t} className="rounded-xl bg-[#F4F4F4] p-4">
-                  <p className="font-bold text-black">
-                    {TRACKS[t].emoji} {TRACKS[t].name}
-                    {i > 0 && <span className="font-normal text-gray-500"> · en complément</span>}
-                  </p>
-                  <p className="mt-1 text-[14px] leading-relaxed text-gray-600">{TRACKS[t].text}</p>
-                </div>
-              ))}
-            </div>
-            {plan.cours.length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm font-bold text-black">Des cours faits pour vous, sur vos créneaux :</p>
-                <ul className="mt-2 divide-y divide-gray-100 rounded-xl border border-gray-200">
-                  {plan.cours.map((c) => (
-                    <li key={c.jour + c.heure} className="px-3.5 py-2.5 text-[14px] leading-snug">
-                      <span className="font-bold text-black">
-                        {c.jour} {c.heure} · {c.nom}
-                      </span>
-                      <span className="block text-gray-500">{coursDesc(c.nom)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {plan.muscuHorsCours && !plan.tracks.includes('muscu') && (
-              <p className="mt-3 text-[14px] leading-relaxed text-gray-600">
-                🏋️ Et aux heures qui vous arrangent (tôt le matin, le midi, tard le soir) : la musculation en accès libre, 7j/7
-                de 5h à 23h.
-              </p>
-            )}
-            {plan.coaching && (
-              <p className="mt-3 text-[14px] leading-relaxed text-gray-600">
-                🤝 Envie d’un suivi rien que pour vous ? Nos coachs proposent aussi du coaching individuel.
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {member ? (
-        <MemberCard />
-      ) : (
-        <Candidature
-          firstName={firstName}
-          phone={phone}
-          leadId={leadId}
-          answers={answers}
-          source={source}
-          applied={applied}
-          onApplied={onApplied}
-        />
-      )}
+      {member ? <MemberCard /> : <Essai {...essai} />}
     </Shell>
   )
 }
@@ -731,19 +629,16 @@ function Result({
 /** Fin du bilan pour un membre : en parler à l'équipe, et le partager à un proche. */
 function MemberCard() {
   const link = 'https://crm-thegym.vercel.app/bilan?src=wa'
-  const message = `J’ai fait le Bilan Forme de THE GYM : en 2 minutes, on découvre ce qui nous bloque et quoi mettre en place. Fais-le, la séance d’essai est offerte 👉 ${link}`
+  const message = `J’ai fait le Bilan Forme de THE GYM : en 2 minutes, on découvre ce qui nous freine et quoi mettre en place. Fais-le, la séance d’essai est offerte 👉 ${link}`
   return (
-    <section className="mt-6 rounded-2xl bg-[#111111] p-6 text-white shadow-lg">
-      <h2 className="text-[34px] leading-none" style={{ ...title, color: YELLOW }}>
+    <section className="mt-8 rounded-2xl bg-[#111111] p-6 text-white shadow-lg">
+      <h2 className="text-[32px] leading-none" style={{ ...title, color: YELLOW }}>
         Vous êtes déjà des nôtres 💪
       </h2>
       <p className="mt-3 text-[16px] leading-relaxed text-gray-200">
-        Parlez de votre bilan à un coach ou à l’accueil : on vous aide à mettre ces conseils en place, dès votre prochaine
-        séance.
+        Parlez de votre bilan à un coach ou à l’accueil : on vous aide à le mettre en place dès votre prochaine séance.
       </p>
-      <p className="mt-3 text-[15px] leading-relaxed text-gray-300">
-        Un proche se reconnaît dans ces blocages ? Envoyez-lui le bilan : sa séance d’essai est offerte.
-      </p>
+      <p className="mt-2 text-[15px] leading-relaxed text-gray-300">Un proche se reconnaît dans ces blocages ? Sa séance d’essai est offerte.</p>
       <a href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer" className={`${primaryBtn} mt-5`}>
         Partager le bilan sur WhatsApp
       </a>
@@ -751,36 +646,37 @@ function MemberCard() {
   )
 }
 
-function Candidature({
-  firstName,
-  phone,
+/** Séance d'essai offerte : 3 champs (prénom et téléphone déjà remplis), un bouton. */
+function Essai({
+  coord,
+  setCoord,
   leadId,
   answers,
   source,
   applied,
   onApplied,
+  compact,
 }: {
-  firstName: string
-  phone: string
+  coord: Coordonnees
+  setCoord: (c: Coordonnees) => void
   leadId: string | null
   answers: Answers
   source: string | null
   applied: boolean
   onApplied: () => void
+  compact?: boolean
 }) {
-  const [form, setForm] = useState({ first_name: firstName.trim().split(' ')[0], last_name: '', phone, email: '' })
-  const [rappel, setRappel] = useState<string[]>([])
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!form.first_name.trim() || !form.last_name.trim()) return setError('Indiquez votre prénom et votre nom.')
-    if (form.phone.replace(/\D/g, '').length < 9) return setError('Indiquez votre numéro de téléphone.')
+    if (!coord.first_name.trim() || !coord.last_name.trim()) return setError('Indiquez votre prénom et votre nom.')
+    if (coord.phone.replace(/\D/g, '').length < 9) return setError('Indiquez votre numéro de téléphone.')
     setSending(true)
     try {
-      await postBilan({ etape: 'candidature', id: leadId, ...form, rappel, answers, source })
+      await postBilan({ etape: 'candidature', id: leadId, ...coord, answers, source })
       onApplied()
     } catch (err) {
       setError(
@@ -797,82 +693,42 @@ function Candidature({
 
   if (applied) {
     return (
-      <section className="mt-6 rounded-2xl bg-[#111111] p-6 text-center text-white shadow-lg">
-        <p className="text-4xl">🙌</p>
-        <h2 className="mt-2 text-[34px] leading-none" style={{ ...title, color: YELLOW }}>
-          C’est noté{form.first_name ? `, ${form.first_name}` : ''} !
-        </h2>
-        <p className="mt-3 text-[16px] leading-relaxed text-gray-200">
-          On vous rappelle sous 24-48 h pour fixer votre séance.
+      <section className={`${compact ? 'mt-4' : 'mt-8'} rounded-2xl bg-[#111111] p-5 text-center text-white shadow-lg`}>
+        <p className="text-[28px] leading-none" style={{ ...title, color: YELLOW }}>
+          🙌 C’est noté{coord.first_name ? `, ${coord.first_name.trim().split(' ')[0]}` : ''} !
         </p>
-        <p className="mt-3 text-sm text-gray-400">THE GYM · 565 route des Vernades, 07260 Rosières</p>
+        <p className="mt-2 text-[15px] leading-relaxed text-gray-200">On vous rappelle sous 24-48 h pour fixer votre séance.</p>
       </section>
     )
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#F5C800]">
-        🎁 Offerte et sans engagement
-      </p>
-      <h2 className="mt-3 text-[34px] leading-none text-black" style={title}>
-        Votre séance d’essai offerte
+    <section className={`${compact ? 'mt-4' : 'mt-8'} rounded-2xl border-2 border-[#F5C800] bg-white p-5 shadow-md`}>
+      <h2 className="text-[30px] leading-none text-black" style={title}>
+        🎁 Votre séance d’essai offerte
       </h2>
       <p className="mt-2 text-[15px] leading-relaxed text-gray-600">
-        Venez tester avec un coach, en cours collectif ou en musculation : on part de votre bilan pour choisir la bonne
-        séance et vous montrer par où commencer. Sans engagement, vous décidez ensuite, à tête reposée.
+        Avec un coach, en cours ou en musculation. Sans engagement : vous décidez ensuite.
       </p>
-      <form onSubmit={submit} className="mt-5 space-y-4">
+      <form onSubmit={submit} className="mt-4 space-y-3">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Prénom" value={form.first_name} onChange={(v) => setForm({ ...form, first_name: v })} autoComplete="given-name" />
-          <Field label="Nom" value={form.last_name} onChange={(v) => setForm({ ...form, last_name: v })} autoComplete="family-name" />
+          <Field label="Prénom" value={coord.first_name} onChange={(v) => setCoord({ ...coord, first_name: v })} autoComplete="given-name" />
+          <Field label="Nom" value={coord.last_name} onChange={(v) => setCoord({ ...coord, last_name: v })} autoComplete="family-name" />
         </div>
         <Field
           label="Téléphone"
-          value={form.phone}
-          onChange={(v) => setForm({ ...form, phone: v })}
+          value={coord.phone}
+          onChange={(v) => setCoord({ ...coord, phone: v })}
           autoComplete="tel"
           inputMode="tel"
           type="tel"
           placeholder="06 12 34 56 78"
         />
-        <Field
-          label="E-mail"
-          optional
-          value={form.email}
-          onChange={(v) => setForm({ ...form, email: v })}
-          autoComplete="email"
-          inputMode="email"
-          type="email"
-          placeholder="marie@exemple.fr"
-        />
-        <div>
-          <p className="text-sm font-semibold text-gray-700">
-            Quand peut-on vous rappeler ? <span className="font-normal text-gray-400">(plusieurs choix possibles)</span>
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {RAPPEL.map((r) => {
-              const on = rappel.includes(r.value)
-              return (
-                <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => setRappel(on ? rappel.filter((v) => v !== r.value) : [...rappel, r.value])}
-                  className={`rounded-full border-2 px-3 py-2 text-sm font-medium ${
-                    on ? 'border-black bg-black text-[#F5C800]' : 'border-gray-200 bg-white text-gray-700'
-                  }`}
-                >
-                  {r.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
         {error && <p className="text-sm font-medium text-red-500">{error}</p>}
-        <button type="submit" disabled={sending} className={`${primaryBtn} !mt-6 leading-tight`}>
-          {sending ? 'Envoi…' : 'Je postule pour ma séance d’essai offerte'}
+        <button type="submit" disabled={sending} className={`${primaryBtn} !mt-4 leading-tight`}>
+          {sending ? 'Envoi…' : 'Je réserve ma séance offerte'}
         </button>
-        <p className="text-center text-sm font-medium text-gray-500">On vous rappelle sous 24-48 h pour fixer votre séance.</p>
+        <p className="text-center text-sm text-gray-500">On vous rappelle sous 24-48 h pour fixer le créneau.</p>
       </form>
     </section>
   )

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createLead, findLeadByPhoneOrEmail, getLead, updateLead } from '@/lib/db'
-import { emailValide } from '@/lib/email'
 import { notifierCandidature, notifierNouveauProspect } from '@/lib/notifications'
-import { RAPPEL, bilanResume, blockersOf, rappelLabel, sanitizeAnswers, type BilanFiche } from '@/lib/bilan'
+import { bilanResume, blockersOf, sanitizeAnswers, type BilanFiche } from '@/lib/bilan'
 import type { Lead } from '@/lib/supabase'
 
 // =============================================================================
@@ -10,7 +9,7 @@ import type { Lead } from '@/lib/supabase'
 //  POST { etape: 'bilan' }        : réponses + prénom + téléphone → prospect
 //        « Nouveau prospect » source « Bilan Forme » (anti-doublon par
 //        téléphone : la fiche existante est mise à jour) ; renvoie son id ;
-//  POST { etape: 'candidature' }  : nom, email, créneaux de rappel → fiche
+//  POST { etape: 'candidature' }  : prénom, nom, téléphone → fiche
 //        complétée + e-mail « veut sa séance d'essai » à la commerciale ;
 //  GET ?id= : réponses d'un bilan pour réafficher le résultat (lien envoyé à
 //        la personne et ouvert depuis le CRM ; ni téléphone ni email renvoyés).
@@ -96,14 +95,9 @@ async function candidature(body: Record<string, unknown>) {
   const prenom = capitalize(clean(body.first_name, 60))
   const nom = capitalize(clean(body.last_name, 60))
   const telephone = normaliserTel(clean(body.phone, 30))
-  const email = clean(body.email, 120).toLowerCase()
-  const rappel = (Array.isArray(body.rappel) ? body.rappel : []).filter(
-    (v): v is string => typeof v === 'string' && RAPPEL.some((r) => r.value === v),
-  )
 
   if (!prenom || !nom) return NextResponse.json({ error: 'Indiquez votre prénom et votre nom.' }, { status: 400 })
   if (!telephone) return NextResponse.json({ error: 'Numéro de téléphone invalide.' }, { status: 400 })
-  if (email && !emailValide(email)) return NextResponse.json({ error: 'Adresse e-mail invalide.' }, { status: 400 })
   // Le bilan n'a pas pu être enregistré avant le résultat (réseau, vérification Vercel) : on le crée maintenant.
   if (!UUID.test(id)) {
     const answers = sanitizeAnswers(body.answers)
@@ -117,9 +111,8 @@ async function candidature(body: Record<string, unknown>) {
   const dejaPostule = !!lead.diagnostic.candidature
   const patch: Partial<Lead> = {
     nom: `${prenom} ${nom}`,
-    diagnostic: { ...lead.diagnostic, candidature: { at: new Date().toISOString(), rappel } },
+    diagnostic: { ...lead.diagnostic, candidature: { at: new Date().toISOString() } },
   }
-  if (email) patch.email = email
   if (telephone !== lead.telephone && !(await findLeadByPhoneOrEmail(telephone, null))) patch.telephone = telephone
   if (lead.statut === 'Refus') patch.statut = 'Nouveau prospect'
   const maj = await updateLead(id, patch)
@@ -127,7 +120,6 @@ async function candidature(body: Record<string, unknown>) {
   if (maj && !dejaPostule) {
     await notifierCandidature(maj, [
       `Bilan Forme : ${bilanResume(maj.diagnostic!)}`,
-      rappel.length ? `À rappeler : ${rappelLabel(rappel)}` : null,
       `Son bilan : https://crm-thegym.vercel.app/bilan?r=${maj.id}`,
     ].filter((l): l is string => !!l))
   }

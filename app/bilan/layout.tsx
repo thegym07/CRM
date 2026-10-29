@@ -10,10 +10,10 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://crm-thegym.vercel.app'),
   title: 'Votre Bilan Forme — THE GYM Rosières',
   description:
-    'Vous stagnez ? En 2 minutes, découvrez vos erreurs, ce qui vous bloque et ce que vous devez mettre en place pour avancer enfin.',
+    'Perdre du poids, vous remettre en forme, vous muscler ? En 2 minutes, découvrez ce qui vous freine et ce qu’il faut mettre en place pour y arriver.',
   openGraph: {
-    title: 'Vous stagnez ? Faites votre Bilan Forme',
-    description: 'En 2 minutes : vos erreurs, ce qui vous bloque et quoi mettre en place pour avancer enfin. Offert.',
+    title: 'Perdre du poids, vous remettre en forme, vous muscler ?',
+    description: 'Votre Bilan Forme offert en 2 minutes : ce qui vous freine et ce qu’il faut mettre en place pour y arriver.',
     images: [{ url: '/bilan/salle.jpg', width: 1200, height: 800 }],
     locale: 'fr_FR',
     type: 'website',

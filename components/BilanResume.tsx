@@ -1,8 +1,8 @@
-import { bilanResume, rappelLabel, type BilanFiche } from '@/lib/bilan'
+import { bilanResume, type BilanFiche } from '@/lib/bilan'
 
 // Ce que la commerciale doit savoir avant d'appeler un prospect venu du Bilan
-// Forme : son profil, son objectif, son urgence, s'il a postulé à la séance
-// d'essai (et quand le rappeler) + le lien vers son bilan complet.
+// Forme : son profil, son objectif, s'il a postulé à la séance d'essai + le
+// lien vers son bilan complet.
 
 const CANAL: Record<string, string> = { wa: 'WhatsApp', ig: 'Instagram', story: 'story', bio: 'bio Instagram', ads: 'pub', fb: 'Facebook', site: 'site', qr: 'QR code', sms: 'SMS' }
 
@@ -14,9 +14,7 @@ export default function BilanResume({ leadId, fiche }: { leadId: string; fiche: 
       <p className="text-gray-700">🧭 {bilanResume(fiche)}</p>
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {c ? (
-          <span className="font-semibold text-orange-600">
-            🔥 Veut sa séance d’essai{c.rappel?.length ? ` · rappeler ${rappelLabel(c.rappel)}` : ''}
-          </span>
+          <span className="font-semibold text-orange-600">🔥 Veut sa séance d’essai</span>
         ) : (
           <span className="text-gray-400">Bilan fait, pas encore postulé{fiche.src && CANAL[fiche.src] ? ` · via ${CANAL[fiche.src]}` : ''}</span>
         )}
