@@ -73,7 +73,7 @@ function Shell({ subtitle, progress, children }: { subtitle?: string; progress?:
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/bilan/logo.png" alt="THE GYM" className="h-9 w-9 rounded-full" />
           <div className="min-w-0 flex-1 leading-tight">
-            <p className="text-xl text-white" style={title}>Bilan <span style={{ color: YELLOW }}>Forme</span></p>
+            <p className="text-xl text-white" style={title}>Mon Bilan <span style={{ color: YELLOW }}>Forme</span></p>
             {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
           </div>
           {progress !== undefined && (
@@ -242,7 +242,7 @@ function Bilan() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/bilan/logo.png" alt="THE GYM" className="mx-auto h-24 w-24 rounded-full shadow-md" />
             <p className="inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#F5C800]">
-              🎁 Bilan offert · 2 minutes
+              🎁 Mon Bilan Forme en 2 minutes · offert
             </p>
             <h1 className="text-[42px] leading-[0.95] text-black" style={title}>
               Perdre du poids, vous remettre en forme, vous muscler&nbsp;?
@@ -630,7 +630,7 @@ function Result({
 /** Fin du bilan pour un membre : en parler à l'équipe, et le partager à un proche. */
 function MemberCard() {
   const link = 'https://crm-thegym.vercel.app/bilan?src=wa'
-  const message = `J’ai fait le Bilan Forme de THE GYM : en 2 minutes, on découvre ce qui nous freine et quoi mettre en place. Fais-le, la séance d’essai est offerte 👉 ${link}`
+  const message = `J’ai fait mon Bilan Forme en 2 minutes chez THE GYM : on découvre ce qui nous freine et quoi mettre en place. Fais le tien, la séance d’essai est offerte 👉 ${link}`
   return (
     <section className="mt-8 rounded-2xl bg-[#111111] p-6 text-white shadow-lg">
       <h2 className="text-[32px] leading-none" style={{ ...title, color: YELLOW }}>

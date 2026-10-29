@@ -8,12 +8,12 @@ const barlow = Barlow({ weight: ['400', '500', '600', '700', '800'], subsets: ['
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://crm-thegym.vercel.app'),
-  title: 'Votre Bilan Forme — THE GYM Rosières',
+  title: 'Mon Bilan Forme en 2 minutes — THE GYM Rosières',
   description:
     'Perdre du poids, vous remettre en forme, vous muscler ? En 2 minutes, découvrez ce qui vous freine et ce qu’il faut mettre en place pour y arriver.',
   openGraph: {
     title: 'Perdre du poids, vous remettre en forme, vous muscler ?',
-    description: 'Votre Bilan Forme offert en 2 minutes : ce qui vous freine et ce qu’il faut mettre en place pour y arriver.',
+    description: 'Mon Bilan Forme en 2 minutes, offert : ce qui vous freine et ce qu’il faut mettre en place pour y arriver.',
     images: [{ url: '/bilan/salle.jpg', width: 1200, height: 800 }],
     locale: 'fr_FR',
     type: 'website',
