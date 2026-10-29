@@ -437,7 +437,8 @@ function ReelEmbed({ url }: { url: string }) {
 }
 
 const TRACKS: Record<Track, { emoji: string; name: string; text: string }> = {
-  cours: { emoji: '🔥', name: 'Les cours collectifs', text: 'Plus de 30 h par semaine, encadrés par nos coachs diplômés.' },
+  collectifs: { emoji: '🔥', name: 'Les cours collectifs', text: 'Plus de 30 h par semaine, du plus dynamique au plus doux, encadrés par nos coachs diplômés.' },
+  dynamiques: { emoji: '🔥', name: 'Les cours dynamiques', text: 'Cardio et renforcement, encadrés par nos coachs diplômés : on dépense, on se tonifie.' },
   doux: { emoji: '🧘', name: 'Les cours doux', text: 'Pour renforcer en profondeur et gagner en souplesse, sans brusquer le corps.' },
   muscu: { emoji: '🏋️', name: 'L’espace musculation', text: 'Machines et poids libres, à votre rythme.' },
 }
