@@ -499,7 +499,7 @@ export function buildResult(a: Answers): BilanResult {
   if (a.pratique === 'periodes')
     err('irregulier', 'Démarrer trop fort, puis tout arrêter.')
   if (a.pratique === 'quand_temps' || lache.includes('temps') || creneaux.includes('rien'))
-    err('temps', 'Attendre d’avoir le temps au lieu de bloquer un créneau.')
+    err('temps', 'Caser le sport « quand il reste du temps ».')
   if (a.pratique === 'stagne' || a.salle === 'routine')
     err('routine', 'Refaire toujours les mêmes séances.')
   if (lache.includes('motivation') || lache.includes('seul'))
@@ -513,7 +513,7 @@ export function buildResult(a: Answers): BilanResult {
   if (over45)
     err('age', 'S’entraîner comme à 25 ans, ou ne plus oser forcer du tout.')
   if (a.pratique === 'jamais' && !lache.includes('debut'))
-    err('motivation', 'Attendre le « bon moment » pour commencer.')
+    err('motivation', 'Remettre le premier pas à plus tard.')
   const rank = (t: ProfileId) => (detected.includes(t) ? detected.indexOf(t) : 9)
   const errors = Array.from(
     new Set(
