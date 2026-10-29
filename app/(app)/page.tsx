@@ -1,6 +1,7 @@
 import { getLeads } from '@/lib/db'
 import StatCard from '@/components/StatCard'
 import Link from 'next/link'
+import SourceTag from '@/components/SourceTag'
 
 export const dynamic = 'force-dynamic'
 
@@ -137,6 +138,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </div>
                   <div className="flex-1 min-w-0">
                     <Link href={`/leads/${lead.id}`} className="font-medium text-gray-900 text-sm hover:text-[#F5C800]">{lead.nom}</Link>
+                    <SourceTag source={lead.source} />
                     {lead.activite && <p className="text-xs text-gray-500 truncate">{lead.activite}</p>}
                   </div>
                   {lead.telephone && (
