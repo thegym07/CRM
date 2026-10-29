@@ -336,7 +336,11 @@ export interface Fix {
   gym: string
 }
 
-export type Track = 'cours' | 'doux' | 'muscu'
+// collectifs = tous les cours (dynamiques ET doux), pour une remise en forme générale ;
+// dynamiques = cardio / renforcement (perdre du poids, se tonifier) ;
+// doux = Pilates, Yoga, Stretching… (santé, douleurs, bien-être).
+// Jamais « dynamiques » et « doux » côte à côte : ensemble, ce sont « les cours collectifs ».
+export type Track = 'collectifs' | 'dynamiques' | 'doux' | 'muscu'
 
 export interface Plan {
   /** Recommandation principale, puis complément éventuel. */
@@ -388,8 +392,15 @@ function timelineOf(a: Answers): string | null {
 const INTENSES = new Set(['Tabata', 'Cross-training', 'TRX / WOD'])
 
 /** Cours conseillés selon l'objectif, le niveau et le corps (noms du planning). */
+const DOUX = ['Pilates', 'Swissball renfo', 'Stretching & mobilité', 'Slow Yoga', 'Stretching', 'Hatha Yoga', 'Yoga Flow']
+
 function coursConseilles(a: Answers, track: Track, detected: ProfileId[]): string[] {
-  if (track === 'doux') return ['Pilates', 'Swissball renfo', 'Stretching & mobilité', 'Slow Yoga', 'Stretching', 'Hatha Yoga', 'Yoga Flow']
+  if (track === 'doux') return DOUX
+  if (track === 'collectifs') {
+    // L'ensemble : un dynamique, un doux, un dynamique…
+    const dyn = coursConseilles(a, 'dynamiques', detected)
+    return Array.from({ length: Math.max(dyn.length, DOUX.length) }, (_, i) => [dyn[i], DOUX[i]]).flat().filter((n): n is string => !!n)
+  }
   const debutant = a.pratique === 'jamais' || a.pratique === 'pause' || detected.some((p) => p === 'regard' || p === 'savoir' || p === 'reprise')
   let list: string[]
   switch (a.objectif) {
@@ -404,7 +415,7 @@ function coursConseilles(a: Answers, track: Track, detected: ProfileId[]): strin
         : ['Body Barre', 'Cross-training', 'TRX / WOD', 'TRX / Renfo', 'CAF', '100% abdos']
       break
     case 'mieux':
-      list = ['Body Tonic', 'Swissball renfo', 'Pilates', 'Mix Training', 'CAF']
+      list = ['Body Tonic', 'Mix Training', 'CAF']
       break
     default:
       list = debutant
@@ -418,31 +429,36 @@ const isMatin = (h: string) => h === '9h15' || h === '10h15'
 
 function buildPlan(a: Answers, detected: ProfileId[]): Plan {
   const has = (p: ProfileId) => detected.includes(p)
-  const w: Record<Track, number> = { cours: 0, doux: 0, muscu: 0 }
+  const w: Record<Track, number> = { collectifs: 0, dynamiques: 0, doux: 0, muscu: 0 }
   const envie = a.envie as string | undefined
-  if (envie === 'groupe') w.cours += 3
-  if (envie === 'guide') w.cours += 2
+  if (envie === 'groupe') w.dynamiques += 3
+  if (envie === 'guide') w.dynamiques += 2
   if (envie === 'progres') w.muscu += 3
   if (envie === 'calme') w.muscu += 3
   if (envie === 'doux') w.doux += 3
-  if (has('regard')) w.cours += 2
-  if (has('motivation')) w.cours += 2
-  if (has('savoir')) w.cours += 1
-  if (has('irregulier')) w.cours += 1
+  if (has('regard')) w.dynamiques += 2
+  if (has('motivation')) w.dynamiques += 2
+  if (has('savoir')) w.dynamiques += 1
+  if (has('irregulier')) w.dynamiques += 1
   if (has('routine')) w.muscu += 1
   if (has('temps')) w.muscu += 1
   if (has('douleurs')) w.doux += detected[0] === 'douleurs' ? 5 : 2
   if (has('age')) w.doux += 1
   if (a.objectif === 'muscle') w.muscu += 3
-  if (a.objectif === 'perte') { w.cours += 1; w.muscu += 1 }
-  if (a.objectif === 'forme') w.cours += 1
+  if (a.objectif === 'perte') { w.dynamiques += 1; w.muscu += 1 }
+  if (a.objectif === 'forme') w.dynamiques += 1
   if (a.objectif === 'mieux') w.doux += 2
 
   // À égalité, les cours doux passent devant quand la douleur est le problème principal.
-  const order: Track[] = detected[0] === 'douleurs' ? ['doux', 'cours', 'muscu'] : ['cours', 'muscu', 'doux']
+  const order: Track[] = detected[0] === 'douleurs' ? ['doux', 'dynamiques', 'muscu'] : ['dynamiques', 'muscu', 'doux']
   const ranked = [...order].sort((x, y) => w[y] - w[x])
-  const tracks: Track[] = [ranked[0]]
+  let tracks: Track[] = [ranked[0]]
   if (w[ranked[1]] >= 2) tracks.push(ranked[1])
+  // Dynamiques + doux, ou remise en forme générale : ce sont « les cours collectifs », dans leur ensemble.
+  if ((tracks.includes('dynamiques') && tracks.includes('doux')) || (tracks[0] === 'dynamiques' && a.objectif === 'forme')) {
+    tracks = tracks.map((t) => (t === 'dynamiques' || t === 'doux' ? 'collectifs' : t)).filter((t, i, l) => l.indexOf(t) === i)
+    if (tracks.length === 1 && w.muscu >= 2) tracks.push('muscu')
+  }
 
   // Cours sur ses créneaux : matinée → 9h15/10h15 (lun-sam), fin de journée → 17h30-19h30, week-end → samedi matin.
   const creneaux = asList(a.creneaux)
@@ -560,7 +576,7 @@ export function buildResult(a: Answers): BilanResult {
     douleurs: {
       title: 'Renforcer en douceur, sans forcer sur la douleur',
       text: 'Gainage, mobilité, renforcement progressif. Si la douleur persiste, demandez l’avis de votre médecin.',
-      gym: 'Pilates, Swissball renfo, Stretching & mobilité : encadrés par des coachs diplômés.',
+      gym: 'Des coachs diplômés : signalez-leur votre douleur dès la première séance.',
     },
     age: {
       title: 'Miser sur le renforcement, à bonne dose',
@@ -596,7 +612,7 @@ export function buildResult(a: Answers): BilanResult {
     mieux: {
       title: 'Allier mobilité et renforcement doux',
       text: 'Un peu de souplesse et de gainage chaque semaine : le corps se détend et se tient mieux.',
-      gym: 'Pilates, Yoga et Stretching & mobilité, encadrés par nos coachs.',
+      gym: 'Une séance douce et une de renforcement par semaine suffisent pour démarrer.',
       saufSi: 'douleurs',
     },
   }
