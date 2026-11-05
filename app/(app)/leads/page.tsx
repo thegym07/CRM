@@ -28,6 +28,7 @@ const FILTRES = [
 
 // SMS à proposer (après au moins un appel) : premier message, puis relance
 const texteSms = (l: Lead) => smsProspect(l, nbAppels(l.appels))
+const texteSmsApresAppel = (l: Lead) => smsProspect(l, nbAppels(l.appels) + 1)
 
 // Prochain appel prévu plus tard que aujourd'hui (séquence de relance) : on l'affiche
 function ProchainAppel({ lead, aujourdhui }: { lead: Lead; aujourdhui: string }) {
@@ -181,7 +182,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     <StatutLeadSelect leadId={lead.id} value={lead.statut} />
                     <MobileNotes leadId={lead.id} value={lead.notes} nom={lead.nom} />
                   </div>
-                  <CallTracker leadId={lead.id} appels={lead.appels ?? []} statut={lead.statut} dateRelance={lead.date_relance} />
+                  <CallTracker leadId={lead.id} appels={lead.appels ?? []} statut={lead.statut} dateRelance={lead.date_relance}
+                    telephone={lead.telephone} smsApresAppel={texteSmsApresAppel(lead)} />
                 </>
               )}
             </div>
@@ -246,7 +248,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                       : <StatutLeadSelect leadId={lead.id} value={lead.statut} />}
                   </td>
                   <td className="px-4 py-3">
-                    {!vuePerdus && <CallTracker leadId={lead.id} appels={lead.appels ?? []} statut={lead.statut} dateRelance={lead.date_relance} />}
+                    {!vuePerdus && <CallTracker leadId={lead.id} appels={lead.appels ?? []} statut={lead.statut} dateRelance={lead.date_relance}
+                      telephone={lead.telephone} smsApresAppel={texteSmsApresAppel(lead)} />}
                   </td>
                   <td className="px-4 py-3 hidden xl:table-cell align-top min-w-[240px]">
                     <InlineNotes leadId={lead.id} value={lead.notes} />

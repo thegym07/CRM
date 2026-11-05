@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { lireContact, nbAppels, nbSansReponse, nouvelleEntree, prochainEssai, MAX_SANS_REPONSE } from '@/lib/appels'
+import SmsButton from './SmsButton'
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
@@ -23,17 +24,20 @@ function jourLisible(date: string): string {
  * et propose de classer le prospect « Perdu — injoignable » au bout de 6 essais.
  * « A répondu » : la suite se choisit avec le statut (RDV pris, À rappeler, Perdu).
  */
-export default function CallTracker({ leadId, appels, statut, dateRelance }: {
+export default function CallTracker({ leadId, appels, statut, dateRelance, telephone, smsApresAppel }: {
   leadId: string
   appels: string[]
   statut?: string
   dateRelance?: string | null
+  telephone?: string | null
+  smsApresAppel?: string | null  // SMS à proposer juste après un « Pas répondu »
 }) {
   const router = useRouter()
   const [list, setList] = useState<string[]>(appels ?? [])
   const [saving, setSaving] = useState(false)
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [proposerSms, setProposerSms] = useState(false)
   // Ce qu'il y avait avant le dernier clic, pour que « Annuler » défasse tout (statut et relance)
   const [avant, setAvant] = useState<{ entree: string; statut?: string; date_relance: string | null } | null>(null)
 
@@ -53,7 +57,9 @@ export default function CallTracker({ leadId, appels, statut, dateRelance }: {
       setMessage(prochain
         ? `Prochain appel ${jourLisible(prochain)}. Pensez au SMS.`
         : `${sansReponse} appels sans réponse : classez-le en « Perdu », motif Injoignable.`)
+      setProposerSms(true)
     } else {
+      setProposerSms(false)
       patch.date_relance = null
       setMessage('Choisissez la suite avec le statut : RDV pris, À rappeler ou Perdu.')
     }
@@ -89,6 +95,7 @@ export default function CallTracker({ leadId, appels, statut, dateRelance }: {
     setAvant(null)
     setSaving(false)
     setMessage(null)
+    setProposerSms(false)
     router.refresh()
   }
 
@@ -131,6 +138,9 @@ export default function CallTracker({ leadId, appels, statut, dateRelance }: {
       </div>
 
       {message && <span className="text-[11px] font-semibold text-gray-700 text-right max-w-[260px]">{message}</span>}
+      {message && proposerSms && smsApresAppel && telephone && (
+        <SmsButton leadId={leadId} telephone={telephone} texte={smsApresAppel} label="Envoyer le SMS" />
+      )}
       {!message && last && !open && (
         <span className="text-[11px] text-gray-400">dernier : {fmt(last.t)}{last.r ? ` · ${ICONE[last.r]}` : ''}</span>
       )}
