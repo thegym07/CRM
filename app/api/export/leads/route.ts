@@ -1,4 +1,5 @@
 import { getLeads } from '@/lib/db'
+import { nbAppels } from '@/lib/appels'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,7 +25,7 @@ export async function GET() {
       l.rdv_honore === true ? 'Oui' : l.rdv_honore === false ? 'Non' : '',
       champ(l.offre_souscrite),
       fmtDate(l.vendu_le),
-      String((l.appels ?? []).length),
+      String(nbAppels(l.appels)),
       champ(l.notes),
     ].join(';')),
   ]

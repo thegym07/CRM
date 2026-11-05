@@ -2,6 +2,7 @@ import { getReport, getReports, type DailyReport } from '@/lib/reports'
 import { getLeads } from '@/lib/db'
 import RapportForm from './RapportForm'
 import DateNav from './DateNav'
+import { lireContact } from '@/lib/appels'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,7 +58,21 @@ export default async function RapportPage({ searchParams }: { searchParams: Prom
 
   // Séances muscu accompagnées le jour sélectionné (présence Oui + coach)
   const jourFr = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
-  const seancesMuscu = (await getLeads()).filter(l =>
+  const leads = await getLeads()
+
+  // Compté automatiquement par le CRM : chaque clic « Pas répondu », « A répondu », « Relancé » ou SMS
+  const contactsDuJour = leads.flatMap(l => l.appels ?? []).map(lireContact).filter(c => c.r !== 'go' && jourFr(c.t) === selectedDate)
+  const auto = {
+    appels: contactsDuJour.filter(c => c.r !== 'sms').length,
+    joints: contactsDuJour.filter(c => c.r === 'rep').length,
+    sms: contactsDuJour.filter(c => c.r === 'sms').length,
+  }
+  // Pas encore de rapport ce jour-là : on part des chiffres du CRM (modifiables)
+  const initialRapport: DailyReport | null = reportDuJour ?? (auto.appels + auto.sms > 0
+    ? { date: selectedDate, appels_passes: auto.appels, personnes_au_tel: auto.joints, rdv_pris: null, sms_envoyes: auto.sms > 0 }
+    : null)
+
+  const seancesMuscu = leads.filter(l =>
     l.activite === 'plateau muscu' && l.rdv_honore === true &&
     l.date_rdv && jourFr(l.date_rdv) === selectedDate
   )
@@ -84,7 +99,12 @@ export default async function RapportPage({ searchParams }: { searchParams: Prom
 
       {/* Saisie manuelle */}
       <section className="mb-4">
-        <RapportForm key={selectedDate} date={selectedDate} initial={reportDuJour} />
+        <RapportForm key={selectedDate} date={selectedDate} initial={initialRapport}
+          auto={{ appels: auto.appels, joints: auto.joints }}
+          enregistrerTout={!reportDuJour && auto.appels + auto.sms > 0} />
+        <p className="text-xs text-gray-500 mt-2">
+          Compté par le CRM ce jour-là (boutons Pas répondu, A répondu, Relancé, SMS) : {auto.appels} appel{auto.appels !== 1 ? 's' : ''} · {auto.joints} personne{auto.joints !== 1 ? 's' : ''} jointe{auto.joints !== 1 ? 's' : ''} · {auto.sms} SMS. Ajoutez le nombre de RDV pris.
+        </p>
       </section>
 
       {/* Séances muscu accompagnées */}

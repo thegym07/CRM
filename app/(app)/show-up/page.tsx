@@ -3,7 +3,10 @@ import Link from 'next/link'
 import ShowUpRow, { ShowUpCard } from './ShowUpRow'
 import SuiviRelanceSelect from '@/components/SuiviRelanceSelect'
 import CopyButton from '@/components/CopyButton'
-import DeleteButton from '@/components/DeleteButton'
+import PerduButton from '@/components/PerduButton'
+import SmsButton from '@/components/SmsButton'
+import { smsRelance } from '@/lib/sms'
+import { dernierContact as dernierContactLead, nbAppels } from '@/lib/appels'
 import InlineNotes from '@/components/InlineNotes'
 import RelanceDone from '@/components/RelanceDone'
 import type { Lead } from '@/lib/supabase'
@@ -17,12 +20,8 @@ type SearchParams = { relance?: string; q?: string }
 // C'est le critère de routage automatique entre les deux sous-onglets Relances.
 const aEuRdv = (l: Lead) => l.date_rdv != null || l.rdv_honore != null
 
-// Dernier contact = dernière tentative d'appel enregistrée (bouton Relancé ou 📞).
-const dernierContact = (l: Lead): number | null => {
-  const appels = l.appels ?? []
-  if (appels.length === 0) return null
-  return Math.max(...appels.map(a => new Date(a).getTime()))
-}
+// Dernier contact = dernier appel ou SMS enregistré (bouton Relancé, 📞, 💬).
+const dernierContact = (l: Lead): number | null => dernierContactLead(l.appels)
 
 // Les plus urgents en haut : jamais contactés d'abord, puis du plus ancien contact.
 const parUrgence = (a: Lead, b: Lead) => (dernierContact(a) ?? 0) - (dernierContact(b) ?? 0)
@@ -55,9 +54,11 @@ export default async function RdvRelancesPage({ searchParams }: { searchParams: 
   const aVenir = withDate.filter(l => new Date(l.date_rdv!).getTime() >= now)
 
   // ── Section Relances : routage auto en deux sous-onglets ──
+  // (date_relance sert aussi à la séquence d'appels de l'onglet Prospects : ces fiches-là restent dans Prospects)
+  const HORS_RELANCES = ['RDV pris', 'Vendu', 'Refus', 'Perdu', 'Nouveau prospect', 'Contacté sans réponse']
   const relanceLeads = leads.filter(l =>
     l.statut === 'À relancer' ||
-    (l.date_relance && l.date_relance <= today && l.statut !== 'RDV pris' && l.statut !== 'Vendu')
+    (l.date_relance && l.date_relance <= today && !HORS_RELANCES.includes(l.statut))
   )
   const aRappeler = relanceLeads.filter(l => !aEuRdv(l)).sort(parUrgence)
   const postSeance = relanceLeads.filter(aEuRdv).sort(parUrgence)
@@ -162,7 +163,7 @@ export default async function RdvRelancesPage({ searchParams }: { searchParams: 
                     <th className="text-left px-4 py-2.5 label-condensed min-w-[220px]">Notes</th>
                     <th className="px-3 py-2.5"></th>
                     <th className="text-center px-3 py-2.5 label-condensed">Suivi</th>
-                    <th className="px-2 py-2.5 w-10"></th>
+                    <th className="px-2 py-2.5"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -234,16 +235,12 @@ function DernierContact({ lead }: { lead: Lead }) {
   return (
     <span className="text-xs text-gray-600 whitespace-nowrap">
       {new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}
-      <span className="text-gray-400 ml-1">·&nbsp;{(lead.appels ?? []).length}×</span>
+      <span className="text-gray-400 ml-1">·&nbsp;{nbAppels(lead.appels)} appel{nbAppels(lead.appels) !== 1 ? 's' : ''}</span>
     </span>
   )
 }
 
-function dernierContactStatic(l: Lead): number | null {
-  const appels = l.appels ?? []
-  if (appels.length === 0) return null
-  return Math.max(...appels.map(a => new Date(a).getTime()))
-}
+const dernierContactStatic = (l: Lead): number | null => dernierContactLead(l.appels)
 
 function RelanceRow({ lead, noShowBadge }: { lead: Lead; noShowBadge: boolean }) {
   return (
@@ -263,6 +260,7 @@ function RelanceRow({ lead, noShowBadge }: { lead: Lead; noShowBadge: boolean })
               {lead.telephone}
             </a>
             <CopyButton text={lead.telephone} />
+            <SmsButton leadId={lead.id} telephone={lead.telephone} texte={smsRelance(lead)} />
           </span>
         ) : <span className="text-gray-300">—</span>}
       </td>
@@ -279,7 +277,7 @@ function RelanceRow({ lead, noShowBadge }: { lead: Lead; noShowBadge: boolean })
         <SuiviRelanceSelect leadId={lead.id} value={lead.suivi_relance ?? 'À appeler'} nom={lead.nom} />
       </td>
       <td className="px-2 py-3 text-center">
-        <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+        <PerduButton leadId={lead.id} />
       </td>
     </tr>
   )
@@ -300,13 +298,14 @@ function RelanceCardMobile({ lead, noShowBadge }: { lead: Lead; noShowBadge: boo
             <DernierContact lead={lead} />
           </p>
         </div>
-        <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+        <PerduButton leadId={lead.id} />
       </div>
 
       {lead.telephone && (
         <div className="flex items-center gap-1">
           <a href={`tel:${lead.telephone}`} className="font-mono text-sm text-gray-700">{lead.telephone}</a>
           <CopyButton text={lead.telephone} />
+          <span className="ml-auto"><SmsButton leadId={lead.id} telephone={lead.telephone} texte={smsRelance(lead)} /></span>
         </div>
       )}
 

@@ -2,6 +2,7 @@ import { getLeads } from '@/lib/db'
 import StatCard from '@/components/StatCard'
 import Link from 'next/link'
 import SourceTag from '@/components/SourceTag'
+import { aujourdhuiParis, dernierContact as dernierContactLead, nbAppels } from '@/lib/appels'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,12 +69,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   // Prospects qui dorment : jamais rappelés depuis plus de 48 h (dernier appel, sinon date d'ajout)
   const DORMANT_MS = 48 * 3600 * 1000
-  const dernierContact = (l: (typeof all)[number]) => {
-    const appels = l.appels ?? []
-    return appels.length > 0 ? Math.max(...appels.map(a => new Date(a).getTime())) : new Date(l.created_at).getTime()
-  }
+  const dernierContact = (l: (typeof all)[number]) => dernierContactLead(l.appels) ?? new Date(l.created_at).getTime()
+  const jourParis = aujourdhuiParis()
   const dormants = all
     .filter(l => (l.statut === 'Nouveau prospect' || l.statut === 'Contacté sans réponse') && Date.now() - dernierContact(l) > DORMANT_MS)
+    .filter(l => !l.date_relance || l.date_relance <= jourParis) // rappel programmé plus tard : pas en retard
     .sort((a, b) => dernierContact(a) - dernierContact(b))
   const joursSans = (l: (typeof all)[number]) => Math.floor((Date.now() - dernierContact(l)) / 86400000)
 
@@ -182,7 +182,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </div>
                   <div className="flex-1 min-w-0">
                     <Link href={`/leads/${lead.id}`} className="font-medium text-gray-900 text-sm hover:text-[#F5C800]">{lead.nom}</Link>
-                    <p className="text-xs text-red-500 font-semibold">{joursSans(lead)} jour{joursSans(lead) > 1 ? 's' : ''} sans appel · {(lead.appels ?? []).length} appel{(lead.appels ?? []).length !== 1 ? 's' : ''} passé{(lead.appels ?? []).length !== 1 ? 's' : ''}</p>
+                    <p className="text-xs text-red-500 font-semibold">{joursSans(lead)} jour{joursSans(lead) > 1 ? 's' : ''} sans appel · {nbAppels(lead.appels)} appel{nbAppels(lead.appels) !== 1 ? 's' : ''} passé{nbAppels(lead.appels) !== 1 ? 's' : ''}</p>
                   </div>
                   {lead.telephone && (
                     <a href={`tel:${lead.telephone}`}

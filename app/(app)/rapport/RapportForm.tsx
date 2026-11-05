@@ -10,7 +10,12 @@ const DELAI_MS = 800
 
 const versNombre = (v: string) => (v === '' ? null : Math.max(0, parseInt(v, 10) || 0))
 
-export default function RapportForm({ date, initial }: { date: string; initial: DailyReport | null }) {
+export default function RapportForm({ date, initial, auto, enregistrerTout }: {
+  date: string
+  initial: DailyReport | null
+  auto?: { appels: number; joints: number }   // compté par le CRM ce jour-là
+  enregistrerTout?: boolean                    // pré-rempli par le CRM : à enregistrer dès l'ouverture
+}) {
   const router = useRouter()
   const [appels, setAppels] = useState<string>(initial?.appels_passes?.toString() ?? '')
   const [personnes, setPersonnes] = useState<string>(initial?.personnes_au_tel?.toString() ?? '')
@@ -53,6 +58,20 @@ export default function RapportForm({ date, initial }: { date: string; initial: 
     setEtat('attente')
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => enregistrer(body), DELAI_MS)
+  }
+
+  // Rapport pré-rempli par le CRM : enregistré tout de suite, sans attendre une modification
+  useEffect(() => {
+    if (enregistrerTout) programmer({})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const ecart = !!auto && (String(auto.appels) !== appels || String(auto.joints) !== personnes)
+  function reprendreCrm() {
+    if (!auto) return
+    setAppels(String(auto.appels))
+    setPersonnes(String(auto.joints))
+    programmer({ appels: String(auto.appels), personnes: String(auto.joints) })
   }
 
   // Si on quitte la page ou change d'onglet avant la fin du délai, on enregistre tout de suite
@@ -98,6 +117,13 @@ export default function RapportForm({ date, initial }: { date: string; initial: 
         {champ('Personnes au tél', personnes, setPersonnes, 'personnes')}
         {champ('RDV pris', rdv, setRdv, 'rdv')}
       </div>
+
+      {ecart && auto && (
+        <button type="button" onClick={reprendreCrm}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+          ↻ Reprendre les chiffres du CRM : {auto.appels} appel{auto.appels !== 1 ? 's' : ''}, {auto.joints} joint{auto.joints !== 1 ? 's' : ''}
+        </button>
+      )}
 
       {/* Rappel SMS de relance (ne bloque plus l'enregistrement) */}
       <div className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${sms ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>

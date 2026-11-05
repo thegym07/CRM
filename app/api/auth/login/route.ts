@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-
-const SESSION_COOKIE = 'gym_session'
+import { creerSession, SESSION_COOKIE, SESSION_DUREE_S } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
   const { username, password } = await request.json()
@@ -31,11 +30,11 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ success: true })
-  response.cookies.set(SESSION_COOKIE, 'authenticated', {
+  response.cookies.set(SESSION_COOKIE, creerSession(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30, // 30 jours
+    maxAge: SESSION_DUREE_S,
     path: '/',
   })
 

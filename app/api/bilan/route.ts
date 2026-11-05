@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { createLead, findLeadByPhoneOrEmail, getLead, updateLead } from '@/lib/db'
 import { notifierCandidature, notifierNouveauProspect } from '@/lib/notifications'
 import { bilanResume, blockersOf, sanitizeAnswers, type BilanFiche } from '@/lib/bilan'
 import type { Lead } from '@/lib/supabase'
+import { lireIdBilan, sessionValide, signerIdBilan, SESSION_COOKIE } from '@/lib/session'
 
 // =============================================================================
 // Bilan Forme — API PUBLIQUE (page /bilan, sans connexion).
@@ -11,8 +12,9 @@ import type { Lead } from '@/lib/supabase'
 //        téléphone : la fiche existante est mise à jour) ; renvoie son id ;
 //  POST { etape: 'candidature' }  : prénom, nom, téléphone → fiche
 //        complétée + e-mail « veut sa séance d'essai » à la commerciale ;
-//  GET ?id= : réponses d'un bilan pour réafficher le résultat (lien envoyé à
-//        la personne et ouvert depuis le CRM ; ni téléphone ni email renvoyés).
+//  GET ?id= : réponses d'un bilan pour réafficher le résultat. Lien public
+//        signé (id.signature, renvoyé par le POST) ; id seul accepté uniquement
+//        depuis le CRM connecté. Ni téléphone ni email renvoyés.
 // =============================================================================
 
 export const dynamic = 'force-dynamic'
@@ -52,7 +54,8 @@ async function bilan(body: Record<string, unknown>) {
   if (!prenom) return NextResponse.json({ error: 'Indiquez votre prénom.' }, { status: 400 })
   if (!telephone) return NextResponse.json({ error: 'Numéro de téléphone invalide.' }, { status: 400 })
   if (!answers.objectif || !answers.salle) return NextResponse.json({ error: 'Réponses incomplètes.' }, { status: 400 })
-  return NextResponse.json({ id: await enregistrerBilan(prenom, telephone, answers, clean(body.source, 20)) })
+  const id = await enregistrerBilan(prenom, telephone, answers, clean(body.source, 20))
+  return NextResponse.json({ id, r: signerIdBilan(id) })
 }
 
 /** Crée le prospect (ou met à jour la fiche du même numéro) et renvoie son id. */
@@ -66,6 +69,7 @@ async function enregistrerBilan(prenom: string, telephone: string, answers: Retu
     secondaries: ranked.slice(1),
     src: SOURCES_CANAL.has(canal) ? canal : null,
     at: new Date().toISOString(),
+    prenom,
     candidature: null,
   }
 
@@ -74,7 +78,7 @@ async function enregistrerBilan(prenom: string, telephone: string, answers: Retu
     // Déjà connu : on garde sa fiche et son statut (un adhérent « Vendu » reste adhérent),
     // sauf un ancien refus qui redevient un prospect à rappeler.
     const patch: Partial<Lead> = { diagnostic: { ...fiche, candidature: existant.diagnostic?.candidature ?? null } }
-    if (existant.statut === 'Refus') patch.statut = 'Nouveau prospect'
+    redemande(existant, patch)
     await updateLead(existant.id, patch)
     return existant.id
   }
@@ -86,12 +90,21 @@ async function enregistrerBilan(prenom: string, telephone: string, answers: Retu
     statut: 'Nouveau prospect',
     diagnostic: fiche,
   })
-  await notifierNouveauProspect(cree, [`Bilan Forme : ${bilanResume(fiche)}`, `Son bilan : https://crm-thegym.vercel.app/bilan?r=${cree.id}`])
+  await notifierNouveauProspect(cree, [`Bilan Forme : ${bilanResume(fiche)}`, `Son bilan : https://crm-thegym.vercel.app/bilan?r=${signerIdBilan(cree.id)}`])
   return cree.id
 }
 
+/** Il (re)demande une séance : en tête de « à appeler aujourd'hui », séquence de relance remise à zéro. */
+function redemande(lead: Lead, patch: Partial<Lead>) {
+  if (lead.statut === 'Vendu' || lead.statut === 'RDV pris') return
+  if (lead.statut === 'Refus' || lead.statut === 'Perdu') Object.assign(patch, { statut: 'Nouveau prospect', motif_relance: null })
+  patch.date_relance = null
+  patch.appels = [...(lead.appels ?? []), `${new Date().toISOString()}|go`]
+}
+
 async function candidature(body: Record<string, unknown>) {
-  let id = clean(body.id, 40)
+  // L'id doit venir du lien signé renvoyé par l'étape « bilan » (sinon on repasse par le bilan)
+  let id = lireIdBilan(clean(body.id, 80)) ?? ''
   const prenom = capitalize(clean(body.first_name, 60))
   const nom = capitalize(clean(body.last_name, 60))
   const telephone = normaliserTel(clean(body.phone, 30))
@@ -110,29 +123,35 @@ async function candidature(body: Record<string, unknown>) {
 
   const dejaPostule = !!lead.diagnostic.candidature
   const patch: Partial<Lead> = {
-    nom: `${prenom} ${nom}`,
     diagnostic: { ...lead.diagnostic, candidature: { at: new Date().toISOString() } },
   }
-  if (telephone !== lead.telephone && !(await findLeadByPhoneOrEmail(telephone, null))) patch.telephone = telephone
-  if (lead.statut === 'Refus') patch.statut = 'Nouveau prospect'
+  // Une fiche d'adhérent (Vendu) ne change jamais de nom ni de numéro depuis la page publique
+  if (lead.statut !== 'Vendu') {
+    patch.nom = `${prenom} ${nom}`
+    if (telephone !== lead.telephone && !(await findLeadByPhoneOrEmail(telephone, null))) patch.telephone = telephone
+  }
+  redemande(lead, patch)
   const maj = await updateLead(id, patch)
 
   if (maj && !dejaPostule) {
     await notifierCandidature(maj, [
       `Bilan Forme : ${bilanResume(maj.diagnostic!)}`,
-      `Son bilan : https://crm-thegym.vercel.app/bilan?r=${maj.id}`,
+      `Son bilan : https://crm-thegym.vercel.app/bilan?r=${signerIdBilan(maj.id)}`,
     ].filter((l): l is string => !!l))
   }
   return NextResponse.json({ ok: true })
 }
 
-export async function GET(request: Request) {
-  const id = new URL(request.url).searchParams.get('id') ?? ''
-  if (!UUID.test(id)) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
+export async function GET(request: NextRequest) {
+  const brut = request.nextUrl.searchParams.get('id') ?? ''
+  // Lien signé (public) ou id seul si la personne est connectée au CRM
+  const connecte = sessionValide(request.cookies.get(SESSION_COOKIE)?.value)
+  const id = brut.includes('.') ? lireIdBilan(brut) : connecte ? brut : null
+  if (!id || !UUID.test(id)) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
   const lead = await getLead(id).catch(() => null)
   if (!lead?.diagnostic) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
   return NextResponse.json({
-    first_name: lead.nom.split(' ')[0],
+    first_name: lead.diagnostic.prenom ?? (connecte ? lead.nom.split(' ')[0] : ''),
     answers: lead.diagnostic.answers ?? {},
     applied: !!lead.diagnostic.candidature,
   })

@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-
-const SESSION_COOKIE = 'gym_session'
-const SESSION_VALUE = 'authenticated'
+import { SESSION_COOKIE, sessionValide } from '@/lib/session'
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const session = request.cookies.get(SESSION_COOKIE)
-  const isAuthenticated = session?.value === SESSION_VALUE
+  const isAuthenticated = sessionValide(request.cookies.get(SESSION_COOKIE)?.value)
 
   // Routes publiques : login, auth API, webhook Meta, formulaire d'inscription et Bilan Forme publics
   const isPublicPath =
@@ -28,6 +25,8 @@ export function proxy(request: NextRequest) {
     pathname.startsWith('/api/coach/')
 
   if (!isPublicPath && !isAuthenticated) {
+    // Les appels d'API reçoivent une vraie erreur (pas une page de connexion)
+    if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Non connecté' }, { status: 401 })
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

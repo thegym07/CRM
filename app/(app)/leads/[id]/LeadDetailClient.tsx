@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { type Lead } from '@/lib/supabase'
 import LeadForm from '@/components/LeadForm'
 import CallTracker from '@/components/CallTracker'
-import PasInteresseButton from '@/components/PasInteresseButton'
+import PerduButton from '@/components/PerduButton'
+import ReactiverButton from '@/components/ReactiverButton'
+import { PREFIXE_PERTE } from '@/lib/supabase'
 import BilanResume from '@/components/BilanResume'
 import SourceTag from '@/components/SourceTag'
 
@@ -14,10 +16,11 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Effacement réservé aux personnes qui le demandent (RGPD) ; sinon on classe « Perdu ».
   async function handleDelete() {
-    if (!confirm(`Supprimer ${lead.nom} ? Cette action est irréversible.`)) return
+    if (!confirm(`${lead.nom} a demandé l'effacement de ses données ?\nLa fiche sera supprimée définitivement (irréversible).\nSinon, utilisez plutôt « Perdu ».`)) return
     setDeleting(true)
-    const res = await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/leads/${lead.id}?rgpd=1`, { method: 'DELETE' })
     if (!res.ok) {
       const data = await res.json().catch(() => null)
       alert(data?.error ?? 'Suppression impossible.')
@@ -47,14 +50,15 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap justify-end items-center">
-          <PasInteresseButton leadId={lead.id} leadNom={lead.nom} redirect="/leads" />
+          {lead.statut === 'Perdu' ? <ReactiverButton leadId={lead.id} /> : <PerduButton leadId={lead.id} redirect="/leads" />}
           <button onClick={() => setEditing(true)}
             className="btn-primary text-sm">
             Modifier
           </button>
           <button onClick={handleDelete} disabled={deleting}
-            className="px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 text-sm rounded-xl transition-colors">
-            {deleting ? '…' : 'Supprimer'}
+            title="Uniquement si la personne demande l'effacement de ses données (RGPD)"
+            className="px-3 py-2 border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-200 text-xs rounded-xl transition-colors">
+            {deleting ? '…' : 'Effacer (demande RGPD)'}
           </button>
         </div>
       </div>
@@ -73,11 +77,14 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
             {lead.email ? <a href={`mailto:${lead.email}`} className="text-blue-400 hover:underline">{lead.email}</a> : <Empty />}
           </Row>
           <Row label="Source"><span className="text-gray-900">{lead.source || '—'}</span></Row>
+          {lead.statut === 'Perdu' && (
+            <Row label="Perdu"><span className="text-gray-900">{lead.motif_relance?.startsWith(PREFIXE_PERTE) ? lead.motif_relance.slice(PREFIXE_PERTE.length) : 'motif non noté'}</span></Row>
+          )}
         </Section>
 
         <Section title="Suivi des appels">
           <div className="px-4 py-3">
-            <CallTracker leadId={lead.id} appels={lead.appels ?? []} />
+            <CallTracker leadId={lead.id} appels={lead.appels ?? []} statut={lead.statut} dateRelance={lead.date_relance} />
           </div>
         </Section>
 

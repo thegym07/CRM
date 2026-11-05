@@ -8,7 +8,9 @@ import InlineSelect from '@/components/InlineSelect'
 import InlineNotes from '@/components/InlineNotes'
 import InlineDateTime from '@/components/InlineDateTime'
 import CreneauInline from '@/components/CreneauPicker'
-import DeleteButton from '@/components/DeleteButton'
+import PerduButton from '@/components/PerduButton'
+import SmsButton from '@/components/SmsButton'
+import { smsRdv } from '@/lib/sms'
 import { FORMULES, type Lead } from '@/lib/supabase'
 import SourceTag from '@/components/SourceTag'
 
@@ -31,6 +33,13 @@ const RESULT_STYLE = {
   'Vendu':      { bg: '#22c55e', fg: '#ffffff' }, // vert
   'À relancer': { bg: '#F5C800', fg: '#111111' }, // jaune brand
   'Refus':      { bg: '#ef4444', fg: '#ffffff' }, // rouge
+}
+
+// Confirmation du RDV (ou rappel la veille et le jour même), en 1 clic
+function SmsRdv({ lead }: { lead: Lead }) {
+  const sms = smsRdv(lead)
+  if (!sms) return null
+  return <SmsButton leadId={lead.id} telephone={lead.telephone} texte={sms.texte} label={sms.label} />
 }
 
 const presenceValue = (v: boolean | null) => v === true ? 'true' : v === false ? 'false' : 'null'
@@ -149,6 +158,7 @@ export default function ShowUpRow({ lead, faded }: { lead: Lead; faded: boolean 
               {lead.telephone}
             </a>
             <CopyButton text={lead.telephone} />
+            <SmsRdv lead={lead} />
           </span>
         ) : <span className="text-gray-300">—</span>}
       </td>
@@ -176,7 +186,7 @@ export default function ShowUpRow({ lead, faded }: { lead: Lead; faded: boolean 
         <InlineNotes leadId={lead.id} value={lead.notes} />
       </td>
       <td className="px-2 py-3 text-center">
-        <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+        <PerduButton leadId={lead.id} />
       </td>
     </tr>
   )
@@ -211,7 +221,7 @@ export function ShowUpCard({ lead, faded }: { lead: Lead; faded: boolean }) {
         </div>
         <div className="flex items-center gap-1">
           <DateCell lead={lead} />
-          <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+          <PerduButton leadId={lead.id} />
         </div>
       </div>
 
@@ -219,6 +229,7 @@ export function ShowUpCard({ lead, faded }: { lead: Lead; faded: boolean }) {
         <div className="flex items-center gap-1">
           <a href={`tel:${lead.telephone}`} className="font-mono text-sm text-gray-700">{lead.telephone}</a>
           <CopyButton text={lead.telephone} />
+          <span className="ml-auto"><SmsRdv lead={lead} /></span>
         </div>
       )}
 

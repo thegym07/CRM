@@ -668,6 +668,7 @@ export interface BilanFiche {
   secondaries: ProfileId[]
   src: string | null
   at: string
+  prenom?: string // prénom saisi dans le bilan (relu par le lien public, jamais le nom de la fiche CRM)
   candidature?: { at: string; rappel?: string[] } | null
 }
 

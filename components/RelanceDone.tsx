@@ -17,7 +17,7 @@ export default function RelanceDone({ leadId, appels }: { leadId: string; appels
     await fetch(`/api/leads/${leadId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appels: [...(appels ?? []), new Date().toISOString()] }),
+      body: JSON.stringify({ ajouter_appel: new Date().toISOString() }),
     })
     setSaving(false)
     setDone(true)

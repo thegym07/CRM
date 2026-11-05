@@ -40,6 +40,31 @@ export async function notifierNouveauProspect(
   }
 }
 
+/** Prospect Meta qui n'a pas pu être enregistré → e-mail à la boîte de la salle (jamais perdu en silence). */
+export async function notifierEchecProspect(details: string[]): Promise<void> {
+  try {
+    const salle = process.env.GMAIL_USER
+    if (!salle) return
+    await envoyerEmail(
+      salle,
+      `⚠️ Prospect Meta non enregistré dans le CRM`,
+      [
+        `Bonjour,`,
+        ``,
+        `Un prospect de la pub Meta n'a pas pu être enregistré dans le CRM (Meta ou la base de données ne répondait pas).`,
+        `Meta va renvoyer la demande automatiquement. Si le prospect n'apparaît pas dans le CRM d'ici une heure,`,
+        `retrouvez-le dans le Centre de prospects Meta : https://business.facebook.com/latest/leads_center`,
+        ``,
+        ...details.map(d => `• ${d}`),
+        ``,
+        `CRM THE GYM`,
+      ].join('\n'),
+    )
+  } catch (err) {
+    console.error('[NOTIF] échec prospect :', err instanceof Error ? err.message : err)
+  }
+}
+
 /** Candidature à la séance d'essai (Bilan Forme) → e-mail à la commerciale. */
 export async function notifierCandidature(
   lead: Pick<Lead, 'id' | 'nom' | 'telephone'>,

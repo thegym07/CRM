@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { PREFIXE_PERTE } from '@/lib/supabase'
 
 // Palette harmonisée : gris = en attente, jaune = à traiter, vert = positif, rouge = négatif
 const STYLE: Record<string, { bg: string; fg: string }> = {
@@ -19,14 +20,17 @@ export default function SuiviRelanceSelect({ leadId, value, nom }: { leadId: str
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const v = e.target.value
 
-    // Pas intéressé -> suppression définitive (sans le minimum de 7 appels)
+    // Pas intéressé -> classé « Perdu » (archivé avec son motif, plus jamais supprimé)
     if (v === 'Perdu') {
-      if (!confirm(`${nom} n'est pas intéressé(e) ?\nIl/elle sera supprimé(e) définitivement du CRM.`)) return
+      if (!confirm(`${nom} n'est pas intéressé(e) ?\nIl/elle sera classé(e) en « Perdu » (retrouvable dans Prospects > Perdus).`)) return
       setSaving(true)
-      const res = await fetch(`/api/leads/${leadId}?motif=pas-interesse`, { method: 'DELETE' })
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statut: 'Perdu', motif_relance: PREFIXE_PERTE + 'Pas intéressé', date_relance: null, suivi_relance: 'Perdu' }),
+      })
       if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        alert(data?.error ?? 'Suppression impossible.')
+        alert('Enregistrement impossible, réessayez.')
         setSaving(false)
         return
       }

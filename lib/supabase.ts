@@ -10,14 +10,14 @@ export type Lead = {
   activite: 'cours collectif' | 'plateau muscu' | 'coaching' | null
   rdv_honore: boolean | null
   resultat_rdv: 'Vendu' | 'À relancer' | 'Refus' | null
-  statut: 'Nouveau prospect' | 'Contacté sans réponse' | 'À relancer' | 'RDV pris' | 'Vendu' | 'Refus'
+  statut: 'Nouveau prospect' | 'Contacté sans réponse' | 'À relancer' | 'RDV pris' | 'Vendu' | 'Refus' | 'Perdu'
   offre_souscrite: string | null
   coach_assigne: string | null
-  date_relance: string | null
-  motif_relance: string | null
+  date_relance: string | null  // prochain appel prévu (YYYY-MM-DD)
+  motif_relance: string | null // pourquoi relancer ; pour un « Perdu » : « Perdu : <motif> »
   suivi_relance: 'À appeler' | 'Pas de réponse' | 'RDV repris' | 'Perdu' | null
   notes: string | null
-  appels: string[]            // horodatages ISO des tentatives d'appel
+  appels: string[]            // historique de contact : ISO ou ISO|nr|rep|sms (voir lib/appels.ts)
   vendu_le: string | null     // date réelle de la vente (figée au passage en Vendu)
   diagnostic: BilanFiche | null // Bilan Forme public (/bilan) : réponses, profil, candidature
   created_at: string
@@ -26,6 +26,10 @@ export type Lead = {
 
 // Statuts du parcours prospect (formulaire + liste)
 export const STATUTS = ['Nouveau prospect', 'Contacté sans réponse', 'À relancer', 'RDV pris'] as const
+
+// Prospect sorti de l'entonnoir sans vente : archivé (jamais supprimé), avec son motif.
+export const MOTIFS_PERTE = ['Pas intéressé', 'Injoignable', 'Trop loin', 'Prix', 'Inscrit ailleurs', 'Autre'] as const
+export const PREFIXE_PERTE = 'Perdu : '
 
 export const SOURCES = ['Meta Ads', 'Bouche-à-oreille', 'Passage', 'Formulaire web', 'Bilan Forme', 'Autre'] as const
 
@@ -48,4 +52,5 @@ export const STATUT_COLORS: Record<string, string> = {
   'RDV pris':                'bg-gray-900 text-[#F5C800] border-gray-900',
   'Vendu':                   'bg-green-100 text-green-700 border-green-300',
   'Refus':                   'bg-red-100 text-red-600 border-red-200',
+  'Perdu':                   'bg-gray-100 text-gray-500 border-gray-300',
 }

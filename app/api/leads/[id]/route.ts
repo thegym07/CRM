@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getLead, updateLead, deleteLead } from '@/lib/db'
 import { ensureCommission } from '@/lib/commissions'
 import { libererCreneauxDuLead } from '@/lib/agenda'
+import { ENTREE_VALIDE } from '@/lib/appels'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -13,6 +14,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const data = await request.json()
+
+  // « ajouter_appel » : un appel ou un SMS ajouté à l'historique côté serveur,
+  // pour que deux boutons de la même fiche ne s'écrasent pas l'un l'autre.
+  if (typeof data.ajouter_appel === 'string') {
+    if (!ENTREE_VALIDE.test(data.ajouter_appel)) {
+      return NextResponse.json({ error: 'Contact invalide' }, { status: 400 })
+    }
+    const actuel = await getLead(id)
+    if (!actuel) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
+    data.appels = [...(actuel.appels ?? []), data.ajouter_appel]
+    delete data.ajouter_appel
+  }
+
   const lead = await updateLead(id, data)
   if (!lead) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
 
@@ -20,6 +34,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   // Jamais de suppression automatique — seule la croix ✕ de l'onglet
   // Commission Bonus retire une commission (règle métier).
   if (data.rdv_honore === true) await ensureCommission(lead)
+
+  // Perdu ou refus : son créneau coach redevient libre (comme avant avec la suppression)
+  if (data.statut === 'Perdu' || data.statut === 'Refus') await libererCreneauxDuLead(id)
 
   // Date de vente figée au moment où le statut passe à « Vendu »
   // (quel que soit l'écran d'où vient la vente). Jamais écrasée ensuite.
@@ -30,24 +47,19 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   return NextResponse.json(lead)
 }
 
-// Règle métier : un prospect ne se jette pas — minimum 7 tentatives d'appel
-// avant de pouvoir le supprimer. Exception : il a dit lui-même qu'il n'est pas
-// intéressé (?motif=pas-interesse) → suppression immédiate.
-const MIN_APPELS_SUPPRESSION = 7
-
+// Règle métier : un prospect ne se supprime plus. Pas intéressé, injoignable…
+// → statut « Perdu » avec motif (on garde l'historique et les chiffres).
+// Seule exception : la personne demande l'effacement de ses données (RGPD, ?rgpd=1).
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const lead = await getLead(id)
-  if (!lead) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
-
-  const pasInteresse = req.nextUrl.searchParams.get('motif') === 'pas-interesse'
-  const nbAppels = (lead.appels ?? []).length
-  if (!pasInteresse && nbAppels < MIN_APPELS_SUPPRESSION) {
+  if (req.nextUrl.searchParams.get('rgpd') !== '1') {
     return NextResponse.json(
-      { error: `Suppression impossible : ${nbAppels} appel${nbAppels !== 1 ? 's' : ''} sur ${MIN_APPELS_SUPPRESSION} minimum. On ne lâche pas un prospect avant de l'avoir appelé ${MIN_APPELS_SUPPRESSION} fois 💪` },
+      { error: 'On ne supprime plus un prospect : classez-le en « Perdu » avec son motif. La suppression est réservée aux personnes qui demandent l’effacement de leurs données.' },
       { status: 403 },
     )
   }
+  const lead = await getLead(id)
+  if (!lead) return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
 
   await libererCreneauxDuLead(id) // ses créneaux coach redeviennent disponibles
   const ok = await deleteLead(id)

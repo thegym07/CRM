@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type Props = {
   leadId: string
@@ -15,6 +15,7 @@ type Props = {
 export default function InlineSelect({ leadId, field, value, options, colorMap, styleMap, onSaved }: Props) {
   const [current, setCurrent] = useState(String(value))
   const [saving, setSaving] = useState(false)
+  useEffect(() => { setCurrent(String(value)) }, [value])
 
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const newValue = e.target.value

@@ -3,12 +3,16 @@ import Link from 'next/link'
 import CopyButton from '@/components/CopyButton'
 import StatutLeadSelect from '@/components/StatutLeadSelect'
 import InlineNotes from '@/components/InlineNotes'
-import DeleteButton from '@/components/DeleteButton'
-import PasInteresseButton from '@/components/PasInteresseButton'
+import PerduButton from '@/components/PerduButton'
+import ReactiverButton from '@/components/ReactiverButton'
+import SmsButton from '@/components/SmsButton'
 import CallTracker from '@/components/CallTracker'
 import MobileNotes from '@/components/MobileNotes'
 import BilanResume from '@/components/BilanResume'
 import SourceTag from '@/components/SourceTag'
+import { aujourdhuiParis, dernierContact, nbAppels } from '@/lib/appels'
+import { PREFIXE_PERTE, type Lead } from '@/lib/supabase'
+import { smsProspect } from '@/lib/sms'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,18 +23,39 @@ const FILTRES = [
   { label: 'Tous',                  value: '' },
   { label: 'Nouveau prospect',      value: 'Nouveau prospect' },
   { label: 'Contacté sans réponse', value: 'Contacté sans réponse' },
+  { label: 'Perdus',                value: 'Perdu' },
 ]
+
+// SMS à proposer (après au moins un appel) : premier message, puis relance
+const texteSms = (l: Lead) => smsProspect(l, nbAppels(l.appels))
+
+// Prochain appel prévu plus tard que aujourd'hui (séquence de relance) : on l'affiche
+function ProchainAppel({ lead, aujourdhui }: { lead: Lead; aujourdhui: string }) {
+  if (!lead.date_relance || lead.date_relance <= aujourdhui) return null
+  const d = new Date(`${lead.date_relance}T12:00:00`)
+  return (
+    <span className="ml-2 text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+      Rappel le {d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+    </span>
+  )
+}
+
+const motifPerte = (l: Lead) => (l.motif_relance?.startsWith(PREFIXE_PERTE) ? l.motif_relance.slice(PREFIXE_PERTE.length) : 'motif non noté')
 
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams
 
-  // Prospects = jamais eus au téléphone (le suivi actif vit dans RDV & Relances)
-  let all = (await getLeads()).filter(l =>
-    l.statut === 'Nouveau prospect' || l.statut === 'Contacté sans réponse'
+  // Prospects = jamais eus au téléphone (le suivi actif vit dans RDV & Relances).
+  // Vue « Perdus » : les prospects sortis sans vente, avec leur motif.
+  const vuePerdus = params.statut === 'Perdu'
+  const tous = await getLeads()
+  const nbPerdus = tous.filter(l => l.statut === 'Perdu').length
+  let all = tous.filter(l =>
+    vuePerdus ? l.statut === 'Perdu' : (l.statut === 'Nouveau prospect' || l.statut === 'Contacté sans réponse')
   )
 
-  if (params.statut && params.statut !== 'Tous') {
+  if (params.statut && params.statut !== 'Tous' && !vuePerdus) {
     all = all.filter(l => l.statut === params.statut)
   }
 
@@ -44,10 +69,22 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   // Prospect « qui dort » : jamais rappelé depuis plus de 48 h
   const DORMANT_MS = 48 * 3600 * 1000
   const dort = (l: (typeof all)[number]) => {
-    const appels = l.appels ?? []
-    const dernier = appels.length > 0 ? Math.max(...appels.map(a => new Date(a).getTime())) : new Date(l.created_at).getTime()
+    if (vuePerdus) return false
+    const dernier = dernierContact(l.appels) ?? new Date(l.created_at).getTime()
     return Date.now() - dernier > DORMANT_MS
   }
+
+  // Ordre de la journée : à appeler aujourd'hui d'abord (les plus récents en tête,
+  // c'est maintenant qu'ils sont chauds), puis ceux dont le rappel est programmé plus tard.
+  const aujourdhui = aujourdhuiParis()
+  const plusTard = (l: Lead) => !!l.date_relance && l.date_relance > aujourdhui
+  filtered.sort((a, b) => {
+    if (vuePerdus) return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    if (plusTard(a) !== plusTard(b)) return plusTard(a) ? 1 : -1
+    if (plusTard(a)) return a.date_relance!.localeCompare(b.date_relance!)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+  const aAppeler = vuePerdus ? 0 : filtered.filter(l => !plusTard(l)).length
 
   return (
     <div className="p-4 md:p-6">
@@ -56,7 +93,11 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           <h1 className="text-3xl text-gray-900" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>
             Prospects
           </h1>
-          <p className="text-gray-500 text-xs mt-0.5">{filtered.length} prospect{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-gray-500 text-xs mt-0.5">
+            {vuePerdus
+              ? `${filtered.length} prospect${filtered.length !== 1 ? 's' : ''} perdu${filtered.length !== 1 ? 's' : ''} (archivés, rien n'est effacé)`
+              : `${filtered.length} prospect${filtered.length !== 1 ? 's' : ''} · ${aAppeler} à appeler aujourd'hui`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <a href="/api/export/leads"
@@ -78,7 +119,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   ? 'bg-[#F5C800] text-black border-[#F5C800]'
                   : 'border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-500 bg-white'
               }`}>
-              {f.label}
+              {f.label}{f.value === 'Perdu' && nbPerdus > 0 ? ` (${nbPerdus})` : ''}
             </Link>
           )
         })}
@@ -110,11 +151,13 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     {lead.nom}
                   </Link>
                   <SourceTag source={lead.source} />
-                  {dort(lead) && (
+                  {dort(lead) && !plusTard(lead) && (
                     <span className="ml-2 text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
                       😴 +48 h
                     </span>
                   )}
+                  {!vuePerdus && <ProchainAppel lead={lead} aujourdhui={aujourdhui} />}
+                  {vuePerdus && <p className="text-xs text-gray-500 mt-0.5">Perdu : {motifPerte(lead)}</p>}
                   <p className="text-xs text-gray-400 mt-0.5">
                     Ajouté le {new Date(lead.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' })}
                     {lead.activite ? ` · ${lead.activite}` : ''}
@@ -122,21 +165,25 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   <div className="mt-1.5"><BilanResume leadId={lead.id} fiche={lead.diagnostic} /></div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <PasInteresseButton leadId={lead.id} leadNom={lead.nom} />
-                  <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+                  {vuePerdus ? <ReactiverButton leadId={lead.id} /> : <PerduButton leadId={lead.id} />}
                 </div>
               </div>
               {lead.telephone && (
                 <div className="flex items-center gap-1">
                   <a href={`tel:${lead.telephone}`} className="font-mono text-sm text-gray-700">{lead.telephone}</a>
                   <CopyButton text={lead.telephone} />
+                  {!vuePerdus && texteSms(lead) && <span className="ml-auto"><SmsButton leadId={lead.id} telephone={lead.telephone} texte={texteSms(lead)!} /></span>}
                 </div>
               )}
-              <div className="flex items-center gap-2 flex-wrap">
-                <StatutLeadSelect leadId={lead.id} value={lead.statut} />
-                <MobileNotes leadId={lead.id} value={lead.notes} nom={lead.nom} />
-              </div>
-              <CallTracker leadId={lead.id} appels={lead.appels ?? []} />
+              {!vuePerdus && (
+                <>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <StatutLeadSelect leadId={lead.id} value={lead.statut} />
+                    <MobileNotes leadId={lead.id} value={lead.notes} nom={lead.nom} />
+                  </div>
+                  <CallTracker leadId={lead.id} appels={lead.appels ?? []} statut={lead.statut} dateRelance={lead.date_relance} />
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -163,11 +210,13 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     <Link href={`/leads/${lead.id}`} className="block hover:text-[#F5C800] transition-colors">
                       <span className="font-medium text-gray-900">{lead.nom}</span>
                       <SourceTag source={lead.source} />
-                      {dort(lead) && (
+                      {dort(lead) && !plusTard(lead) && (
                         <span className="ml-2 text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
                           😴 +48 h
                         </span>
                       )}
+                      {!vuePerdus && <ProchainAppel lead={lead} aujourdhui={aujourdhui} />}
+                      {vuePerdus && <span className="block text-xs text-gray-500 mt-0.5">Perdu : {motifPerte(lead)}</span>}
                       {lead.activite && <span className="block text-xs text-gray-500 mt-0.5">{lead.activite}</span>}
                     </Link>
                     <div className="mt-1"><BilanResume leadId={lead.id} fiche={lead.diagnostic} /></div>
@@ -179,6 +228,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                           {lead.telephone}
                         </a>
                         <CopyButton text={lead.telephone} />
+                        {!vuePerdus && texteSms(lead) && <span className="ml-2"><SmsButton leadId={lead.id} telephone={lead.telephone} texte={texteSms(lead)!} /></span>}
                       </span>
                     ) : <span className="text-gray-300">—</span>}
                   </td>
@@ -191,10 +241,12 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <StatutLeadSelect leadId={lead.id} value={lead.statut} />
+                    {vuePerdus
+                      ? <span className="text-xs text-gray-500">Perdu</span>
+                      : <StatutLeadSelect leadId={lead.id} value={lead.statut} />}
                   </td>
                   <td className="px-4 py-3">
-                    <CallTracker leadId={lead.id} appels={lead.appels ?? []} />
+                    {!vuePerdus && <CallTracker leadId={lead.id} appels={lead.appels ?? []} statut={lead.statut} dateRelance={lead.date_relance} />}
                   </td>
                   <td className="px-4 py-3 hidden xl:table-cell align-top min-w-[240px]">
                     <InlineNotes leadId={lead.id} value={lead.notes} />
@@ -204,8 +256,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
-                      <PasInteresseButton leadId={lead.id} leadNom={lead.nom} />
-                      <DeleteButton leadId={lead.id} leadNom={lead.nom} />
+                      {vuePerdus ? <ReactiverButton leadId={lead.id} /> : <PerduButton leadId={lead.id} />}
                     </div>
                   </td>
                 </tr>

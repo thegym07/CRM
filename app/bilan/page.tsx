@@ -21,7 +21,7 @@ import {
 // erreurs, quoi mettre en place, plan à la salle) avec la séance d'essai
 // offerte proposée tôt et à la fin (prénom, nom, téléphone).
 // ?src=wa|ig|story|bio|ads : canal d'origine, noté sur la fiche du prospect.
-// ?r=<id> : réaffiche le bilan déjà rempli (lien ouvert depuis le CRM).
+// ?r=<id.signature> : réaffiche le bilan déjà rempli (id seul : depuis le CRM connecté).
 // =============================================================================
 
 type Step = 'intro' | number | 'contact' | 'result'
@@ -42,7 +42,7 @@ async function postBilan(body: Record<string, unknown>) {
   if (!(res.headers.get('content-type') ?? '').includes('application/json')) throw new Bloque()
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Une erreur est survenue, réessayez.')
-  return data as { id?: string; ok?: boolean }
+  return data as { id?: string; r?: string; ok?: boolean }
 }
 
 const store = {
@@ -120,6 +120,7 @@ function Bilan() {
   const [contact, setContact] = useState({ first_name: '', phone: '' })
   // Déjà membre : le bilan s'affiche sans créer de prospect (la commerciale n'appelle pas les adhérents).
   const [member, setMember] = useState(false)
+  // Référence signée du bilan (?r=id.signature), renvoyée telle quelle à la candidature
   const [leadId, setLeadId] = useState<string | null>(resultId)
   const [applied, setApplied] = useState(false)
   const [sending, setSending] = useState(false)
@@ -196,10 +197,10 @@ function Bilan() {
     try {
       const body = await postBilan({ etape: 'bilan', ...contact, answers, source })
       store.del(RETRY)
-      setLeadId(body.id ?? null)
+      setLeadId(body.r ?? null)
       // Lien partageable du bilan (sans renvoyer le formulaire).
       const url = new URL(window.location.href)
-      url.searchParams.set('r', body.id ?? '')
+      url.searchParams.set('r', body.r ?? body.id ?? '')
       window.history.replaceState(null, '', url.toString())
       setStep('result')
     } catch (err) {
