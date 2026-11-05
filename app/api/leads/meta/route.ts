@@ -42,6 +42,29 @@ function signatureValide(corps: string, entete: string | null): boolean {
 
 const LEADGEN_ID = /^\d{5,25}$/
 
+// Autres pages Facebook du Business Manager abonnées à la même app Meta (Meta n'accepte qu'une
+// adresse de rappel par app) : leurs leads ne sont PAS pour ce CRM, on relaie la notification
+// telle quelle (corps brut + signature d'origine) au CRM concerné.
+const RELAIS_PAR_PAGE: Record<string, { nom: string; url: string }> = {
+  '152896994571328': { nom: 'La Salle CrossFit', url: 'https://crm-lasallecrossfit.vercel.app/api/leads/meta' },
+}
+
+async function relayer(cible: { nom: string; url: string }, corps: string, signature: string | null): Promise<boolean> {
+  try {
+    const res = await fetch(cible.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(signature ? { 'X-Hub-Signature-256': signature } : {}) },
+      body: corps,
+      signal: AbortSignal.timeout(9000),
+    })
+    console.log(`[META WEBHOOK] ↪ Relais ${cible.nom} : ${res.status}`)
+    return res.ok
+  } catch (err) {
+    console.error(`[META WEBHOOK] ❌ Relais ${cible.nom} impossible :`, err instanceof Error ? err.message : err)
+    return false
+  }
+}
+
 // Erreur passagère (Meta 5xx, base indisponible) : Meta renverra la notification.
 // Erreur définitive (lead introuvable, jeton refusé) : inutile d'insister.
 class ErreurDefinitive extends Error {}
@@ -64,9 +87,12 @@ export async function POST(request: NextRequest) {
   // la salle par e-mail et on répond 500 pour que Meta renvoie la notification plus tard
   // (l'anti-doublon par téléphone évite de créer deux fois le même prospect).
   const echecs: string[] = []
+  const aRelayer = new Set<string>()
   for (const entry of body.entry ?? []) {
     for (const change of entry.changes ?? []) {
       if (change.field !== 'leadgen') continue
+      const pageId = String(change.value?.page_id ?? entry.id ?? '')
+      if (RELAIS_PAR_PAGE[pageId]) { aRelayer.add(pageId); continue } // lead d'une autre salle
       const leadgenId = String(change.value?.leadgen_id ?? '')
       if (!LEADGEN_ID.test(leadgenId)) continue // pas un vrai identifiant Meta : ignoré
       try {
@@ -78,6 +104,11 @@ export async function POST(request: NextRequest) {
         if (!(err instanceof ErreurDefinitive)) echecs.push(`Lead Meta n° ${leadgenId}`)
       }
     }
+  }
+
+  for (const pageId of aRelayer) {
+    const cible = RELAIS_PAR_PAGE[pageId]
+    if (!(await relayer(cible, corps, request.headers.get('x-hub-signature-256')))) echecs.push(`Lead Meta ${cible.nom} (relais vers son CRM)`)
   }
 
   if (echecs.length > 0) {
