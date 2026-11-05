@@ -144,6 +144,11 @@ async function traiterLead(leadgenId: string, value: MetaWebhookValue) {
   console.log(`[META WEBHOOK] 👤 Lead : nom="${nom}" tel="${telephone ?? '—'}" email="${email ?? '—'}"`)
 
   const ligneOrigine = await origine(lead, value, token)
+  // Réponses aux autres questions du formulaire (ex. « Quand préférez-vous être appelé(e) ? », accord)
+  const CHAMPS_CONNUS = new Set(['full_name', 'first_name', 'last_name', 'prenom', 'nom', 'phone_number', 'email', 'inbox_url'])
+  const reponses = (lead.field_data ?? [])
+    .filter(f => !CHAMPS_CONNUS.has(f.name) && f.values?.length)
+    .map(f => `${f.name.replace(/_/g, ' ').replace(/\?$/, '')} : ${f.values.join(', ')}`.slice(0, 200))
   // Marqueur du lead Meta dans les notes : une même notification renvoyée n'est jamais traitée deux fois
   const marqueur = `[meta:${leadgenId}]`
 
@@ -182,10 +187,10 @@ async function traiterLead(leadgenId: string, value: MetaWebhookValue) {
     email,
     source: 'Meta Ads',
     statut: 'Nouveau prospect',
-    notes: `${ligneOrigine ?? 'Origine : pub Meta'} ${marqueur}`,
+    notes: [`${ligneOrigine ?? 'Origine : pub Meta'} ${marqueur}`, ...reponses].join('\n'),
   })
   console.log(`[META WEBHOOK] ✅ Prospect créé dans Supabase (id=${cree.id})`)
-  await notifierNouveauProspect(cree, ligneOrigine ? [ligneOrigine] : [])
+  await notifierNouveauProspect(cree, [...(ligneOrigine ? [ligneOrigine] : []), ...reponses])
 }
 
 // Transforme field_data [{name, values:[]}] en objet { name: value }
