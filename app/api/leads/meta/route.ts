@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { createLead, findLeadByPhoneOrEmail, updateLead } from '@/lib/db'
+import { createLead, findLeadByMetaId, findLeadByPhoneOrEmail, updateLead } from '@/lib/db'
 import { notifierEchecProspect, notifierNouveauProspect } from '@/lib/notifications'
 import type { Lead } from '@/lib/supabase'
+import { lireLeadMeta, type MetaFieldDatum, type MetaQuestion } from '@/lib/metaLead'
 
 const GRAPH_VERSION = 'v21.0'
 
@@ -131,18 +132,25 @@ async function graph<T>(chemin: string, token: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-/** « Origine : pub « X » · formulaire « Y » » (au mieux : si Meta refuse un champ, on s'en passe). */
-async function origine(lead: MetaLead, value: MetaWebhookValue, token: string): Promise<string | null> {
+type MetaForm = { name?: string; questions?: MetaQuestion[] }
+
+/** Définition du formulaire (nom + type de chaque question), au mieux : null si Meta refuse. */
+async function formulaire(lead: MetaLead, value: MetaWebhookValue, token: string): Promise<MetaForm | null> {
+  const formId = lead.form_id ?? value.form_id
+  if (!formId) return null
+  return graph<MetaForm>(`${formId}?fields=name,questions`, token).catch(() => null)
+}
+
+/** « pub « X » · formulaire « Y » » (au mieux : si Meta refuse un champ, on s'en passe). */
+function origine(lead: MetaLead, value: MetaWebhookValue, form: MetaForm | null): string | null {
   const parts: string[] = []
   if (lead.is_organic) parts.push('formulaire Facebook sans pub')
   else if (lead.ad_name) parts.push(`pub « ${lead.ad_name} »`)
   else if (lead.ad_id ?? value.ad_id) parts.push(`pub n° ${lead.ad_id ?? value.ad_id}`)
   const formId = lead.form_id ?? value.form_id
-  if (formId) {
-    const form = await graph<{ name?: string }>(`${formId}?fields=name`, token).catch(() => null)
-    parts.push(form?.name ? `formulaire « ${form.name} »` : `formulaire n° ${formId}`)
-  }
-  return parts.length ? `Origine : ${parts.join(' · ')}` : null
+  if (form?.name) parts.push(`formulaire « ${form.name} »`)
+  else if (formId) parts.push(`formulaire n° ${formId}`)
+  return parts.length ? parts.join(' · ') : null
 }
 
 const dateCourte = () => new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' })
@@ -161,27 +169,26 @@ async function traiterLead(leadgenId: string, value: MetaWebhookValue) {
   // Pas un lead de formulaire (objet sans réponses) : rien à créer
   if (!lead.field_data?.length) throw new ErreurDefinitive('Objet Meta sans réponses de formulaire')
 
-  // 2. Extraire les champs
-  const fields = extraireChamps(lead.field_data ?? [])
-  const nom = [fields.first_name ?? fields.prenom, fields.last_name ?? fields.nom]
-    .filter(Boolean)
-    .join(' ')
-    .trim()
-    || fields.full_name?.trim()
-    || 'Lead Meta'
-  const telephone = normaliserTel(fields.phone_number ?? null)
-  const email = (fields.email ?? '').trim() || null
+  // 2. Extraire les champs (reconnus par leur type, quelle que soit la langue du formulaire)
+  const form = await formulaire(lead, value, token)
+  const lu = lireLeadMeta(lead.field_data ?? [], form?.questions ?? [])
+  const nom = lu.nom || 'Prospect Meta (nom manquant)'
+  const telephone = normaliserTel(lu.telephone)
+  const email = lu.email
+  // Notes : uniquement les réponses aux autres questions (ex. « Préfère être appelé(e) : l'après-midi »)
+  const reponses = lu.reponses
 
   console.log(`[META WEBHOOK] 👤 Lead : nom="${nom}" tel="${telephone ?? '—'}" email="${email ?? '—'}"`)
 
-  const ligneOrigine = await origine(lead, value, token)
-  // Réponses aux autres questions du formulaire (ex. « Quand préférez-vous être appelé(e) ? », accord)
-  const CHAMPS_CONNUS = new Set(['full_name', 'first_name', 'last_name', 'prenom', 'nom', 'phone_number', 'email', 'inbox_url'])
-  const reponses = (lead.field_data ?? [])
-    .filter(f => !CHAMPS_CONNUS.has(f.name) && f.values?.length)
-    .map(f => `${f.name.replace(/_/g, ' ').replace(/\?$/, '')} : ${f.values.join(', ')}`.slice(0, 200))
-  // Marqueur du lead Meta dans les notes : une même notification renvoyée n'est jamais traitée deux fois
+  const ligneOrigine = origine(lead, value, form)
+  // Ancien marqueur dans les notes (prospects créés avant le 06/11) : toujours reconnu
   const marqueur = `[meta:${leadgenId}]`
+
+  // Une même notification renvoyée par Meta n'est jamais traitée deux fois
+  if (await findLeadByMetaId(leadgenId)) {
+    console.log(`[META WEBHOOK] ⏭️  Lead déjà traité (${leadgenId})`)
+    return
+  }
 
   // 3. Déjà connu : il redemande une séance. Un prospect « Perdu » ou « Refus » repart
   // en « Nouveau prospect » ; dans tous les cas on le note et on prévient la commerciale.
@@ -193,7 +200,13 @@ async function traiterLead(leadgenId: string, value: MetaWebhookValue) {
   if (existant) {
     const relance = existant.statut === 'Perdu' || existant.statut === 'Refus'
     const patch: Partial<Lead> = {
-      notes: ajouterNote(existant.notes, `↩ Redemande une séance par la pub le ${dateCourte()}${ligneOrigine ? ` (${ligneOrigine.replace('Origine : ', '')})` : ''} ${marqueur}`),
+      notes: ajouterNote(existant.notes, [`↩ Redemande une séance par la pub le ${dateCourte()}`, ...reponses].join(' · ')),
+      meta_ids: [...(existant.meta_ids ?? []), leadgenId],
+      ...(existant.origine ? {} : { origine: ligneOrigine }),
+      // Fiche abîmée par l'ancien webhook (« Lead Meta », sans téléphone) : on la complète
+      ...(lu.nom && /^(Lead Meta|Prospect Meta)/.test(existant.nom) ? { nom: lu.nom } : {}),
+      ...(!existant.telephone && telephone ? { telephone } : {}),
+      ...(!existant.email && email ? { email } : {}),
     }
     // Toujours dans l'entonnoir : il remonte en tête de « à appeler aujourd'hui », séquence remise à zéro
     if (existant.statut !== 'Vendu') {
@@ -201,12 +214,14 @@ async function traiterLead(leadgenId: string, value: MetaWebhookValue) {
       patch.appels = [...(existant.appels ?? []), `${new Date().toISOString()}|go`]
     }
     if (relance) Object.assign(patch, { statut: 'Nouveau prospect', motif_relance: null })
-    await updateLead(existant.id, patch)
+    const misAJour = (await updateLead(existant.id, patch)) ?? { ...existant, ...patch }
     console.log(`[META WEBHOOK] ↩ Déjà connu (${existant.statut}, id=${existant.id}) : redemande notée`)
-    await notifierNouveauProspect(existant, [
+    await notifierNouveauProspect(misAJour, [
       existant.statut === 'Vendu'
         ? `Attention : déjà adhérent (vendu), il redemande une séance.`
         : `Déjà dans le CRM (${existant.statut}) : il redemande une séance${relance ? ', remis en « Nouveau prospect »' : ''}.`,
+      ...(ligneOrigine ? [`Origine : ${ligneOrigine}`] : []),
+      ...reponses,
     ])
     return
   }
@@ -218,24 +233,18 @@ async function traiterLead(leadgenId: string, value: MetaWebhookValue) {
     email,
     source: 'Meta Ads',
     statut: 'Nouveau prospect',
-    notes: [`${ligneOrigine ?? 'Origine : pub Meta'} ${marqueur}`, ...reponses].join('\n'),
+    notes: reponses.length ? reponses.join('\n') : null,
+    origine: ligneOrigine,
+    meta_ids: [leadgenId],
   })
   console.log(`[META WEBHOOK] ✅ Prospect créé dans Supabase (id=${cree.id})`)
-  await notifierNouveauProspect(cree, [...(ligneOrigine ? [ligneOrigine] : []), ...reponses])
-}
-
-// Transforme field_data [{name, values:[]}] en objet { name: value }
-function extraireChamps(fieldData: MetaFieldDatum[]): Record<string, string> {
-  const out: Record<string, string> = {}
-  for (const f of fieldData) {
-    if (f.name && f.values?.length) out[f.name] = f.values[0]
-  }
-  return out
+  await notifierNouveauProspect(cree, [...(ligneOrigine ? [`Origine : ${ligneOrigine}`] : []), ...reponses])
 }
 
 function normaliserTel(tel: string | null): string | null {
   if (!tel) return null
-  const t = tel.replace(/\s/g, '')
+  const t = tel.replace(/[^\d+]/g, '')
+  if (!t) return null
   // +33612345678 -> 0612345678
   if (t.startsWith('+33')) return '0' + t.slice(3)
   if (t.startsWith('0033')) return '0' + t.slice(4)
@@ -243,7 +252,6 @@ function normaliserTel(tel: string | null): string | null {
 }
 
 // ── Types ──
-type MetaFieldDatum = { name: string; values: string[] }
 type MetaLead = {
   id: string; created_time?: string; field_data?: MetaFieldDatum[]
   ad_id?: string; ad_name?: string; form_id?: string; is_organic?: boolean

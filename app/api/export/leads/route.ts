@@ -12,12 +12,13 @@ export async function GET() {
   const champ = (v: string | null | undefined) => `"${(v ?? '').replace(/"/g, '""')}"`
 
   const lignes = [
-    ['Nom', 'Téléphone', 'Email', 'Source', 'Statut', 'Activité', 'Ajouté le', 'RDV', 'Présence', 'Formule', 'Vendu le', 'Nb appels', 'Notes'].join(';'),
+    ['Nom', 'Téléphone', 'Email', 'Source', 'Origine', 'Statut', 'Activité', 'Ajouté le', 'RDV', 'Présence', 'Formule', 'Vendu le', 'Nb appels', 'Notes'].join(';'),
     ...leads.map(l => [
       champ(l.nom),
       champ(l.telephone),
       champ(l.email),
       champ(l.source),
+      champ(l.origine),
       champ(l.statut),
       champ(l.activite),
       fmtDate(l.created_at),

@@ -20,6 +20,8 @@ export type Lead = {
   appels: string[]            // historique de contact : ISO ou ISO|nr|rep|sms (voir lib/appels.ts)
   vendu_le: string | null     // date réelle de la vente (figée au passage en Vendu)
   diagnostic: BilanFiche | null // Bilan Forme public (/bilan) : réponses, profil, candidature
+  origine: string | null      // pub Meta d'origine : « pub « X » · formulaire « Y » »
+  meta_ids: string[]          // identifiants des leads Meta déjà traités (anti-doublon du webhook)
   created_at: string
   updated_at: string
 }

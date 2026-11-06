@@ -8,6 +8,7 @@ const WRITABLE: (keyof Lead)[] = [
   'nom', 'telephone', 'email', 'source', 'date_rdv', 'activite',
   'rdv_honore', 'resultat_rdv', 'statut', 'offre_souscrite', 'coach_assigne',
   'date_relance', 'motif_relance', 'suivi_relance', 'notes', 'appels', 'vendu_le', 'diagnostic',
+  'origine', 'meta_ids',
 ]
 
 function pickWritable(data: Partial<Lead>): Partial<Lead> {
@@ -19,7 +20,13 @@ function pickWritable(data: Partial<Lead>): Partial<Lead> {
 }
 
 function normalize(row: Record<string, unknown>): Lead {
-  return { ...row, appels: (row.appels as string[]) ?? [], diagnostic: (row.diagnostic as Lead['diagnostic']) ?? null } as Lead
+  return {
+    ...row,
+    appels: (row.appels as string[]) ?? [],
+    diagnostic: (row.diagnostic as Lead['diagnostic']) ?? null,
+    origine: (row.origine as string | null) ?? null,
+    meta_ids: (row.meta_ids as string[]) ?? [],
+  } as Lead
 }
 
 export async function getLeads(): Promise<Lead[]> {
@@ -34,6 +41,13 @@ export async function getLeads(): Promise<Lead[]> {
 export async function getLead(id: string): Promise<Lead | null> {
   const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).maybeSingle()
   if (error) throw new Error(`getLead: ${error.message}`)
+  return data ? normalize(data) : null
+}
+
+/** Prospect déjà créé (ou mis à jour) à partir de ce lead Meta : anti-doublon du webhook. */
+export async function findLeadByMetaId(leadgenId: string): Promise<Lead | null> {
+  const { data, error } = await supabase.from(TABLE).select('*').contains('meta_ids', [leadgenId]).limit(1).maybeSingle()
+  if (error) throw new Error(`findLeadByMetaId: ${error.message}`)
   return data ? normalize(data) : null
 }
 
