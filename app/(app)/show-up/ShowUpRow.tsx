@@ -11,7 +11,8 @@ import CreneauInline from '@/components/CreneauPicker'
 import PerduButton from '@/components/PerduButton'
 import SmsButton from '@/components/SmsButton'
 import { smsRdv } from '@/lib/sms'
-import { FORMULES, type Lead } from '@/lib/supabase'
+import { type Lead } from '@/lib/supabase'
+import { AideFinEssai, ResultatEssai } from '@/components/FinEssai'
 import SourceTag from '@/components/SourceTag'
 
 // Plateau muscu sans date : la date se choisit parmi les dispos coachs
@@ -27,12 +28,6 @@ const PRESENCE_STYLE = {
   'null':  { bg: '#e5e7eb', fg: '#6b7280' }, // gris (en attente)
   'true':  { bg: '#22c55e', fg: '#ffffff' }, // vert
   'false': { bg: '#ef4444', fg: '#ffffff' }, // rouge
-}
-
-const RESULT_STYLE = {
-  'Vendu':      { bg: '#22c55e', fg: '#ffffff' }, // vert
-  'À relancer': { bg: '#F5C800', fg: '#111111' }, // jaune brand
-  'Refus':      { bg: '#ef4444', fg: '#ffffff' }, // rouge
 }
 
 // Confirmation du RDV (ou rappel la veille et le jour même), en 1 clic
@@ -53,18 +48,14 @@ async function putLead(leadId: string, data: Record<string, unknown>) {
 }
 
 /**
- * Résultat du RDV : écrit directement le statut du prospect.
- * Vente => demande d'abord la formule (menu déroulant), puis enregistre les deux.
- * Refus => sort de l'entonnoir. À rappeler => bascule en section Relances.
+ * Résultat du RDV. Présent => fin d'essai (Vente + formule, Réfléchit, Pas intéressé) avec l'aide « Que proposer ? ».
+ * Absent => part en Relances (géré par la présence).
  */
 function ResultCell({ leadId, presence, onDone }: {
   leadId: string
   presence: string
   onDone: () => void
 }) {
-  const [venteEnCours, setVenteEnCours] = useState(false)
-  const [saving, setSaving] = useState(false)
-
   if (presence === 'false') {
     return (
       <span className="text-xs font-semibold px-2 py-1 rounded" style={{ background: '#F5C800', color: '#111' }}>
@@ -73,54 +64,11 @@ function ResultCell({ leadId, presence, onDone }: {
     )
   }
   if (presence !== 'true') return <span className="text-xs text-gray-300">—</span>
-
-  // Étape 2 : la vente est choisie, on demande la formule
-  if (venteEnCours) {
-    return (
-      <select
-        autoFocus
-        defaultValue=""
-        disabled={saving}
-        onChange={async (e) => {
-          const v = e.target.value
-          if (v === '__retour') { setVenteEnCours(false); return }
-          if (!v) return
-          setSaving(true)
-          await putLead(leadId, { statut: 'Vendu', offre_souscrite: v })
-          onDone()
-        }}
-        className="text-xs px-2 py-1 rounded border-0 outline-none cursor-pointer font-semibold"
-        style={{ background: '#22c55e', color: '#fff' }}
-      >
-        <option value="">Formule ?</option>
-        {FORMULES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-        <option value="__retour">← Annuler</option>
-      </select>
-    )
-  }
-
-  // Étape 1 : choix du résultat
   return (
-    <select
-      value="RDV pris"
-      disabled={saving}
-      onChange={async (e) => {
-        const v = e.target.value
-        if (v === 'Vendu') { setVenteEnCours(true); return }
-        if (v === 'À relancer' || v === 'Refus') {
-          setSaving(true)
-          await putLead(leadId, { statut: v })
-          onDone()
-        }
-      }}
-      onClick={e => e.stopPropagation()}
-      className="text-xs px-2 py-1 rounded border-0 outline-none cursor-pointer font-semibold bg-gray-100 text-gray-600"
-    >
-      <option value="RDV pris">—</option>
-      <option value="Vendu">Vente ✓</option>
-      <option value="À relancer">À rappeler →</option>
-      <option value="Refus">Refus</option>
-    </select>
+    <span className="inline-flex flex-col items-center gap-1">
+      <ResultatEssai leadId={leadId} onDone={onDone} />
+      <AideFinEssai flottant />
+    </span>
   )
 }
 

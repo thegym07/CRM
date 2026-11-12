@@ -11,6 +11,7 @@ import InlineNotes from '@/components/InlineNotes'
 import RelanceDone from '@/components/RelanceDone'
 import type { Lead } from '@/lib/supabase'
 import SourceTag from '@/components/SourceTag'
+import { AideFinEssai } from '@/components/FinEssai'
 
 export const dynamic = 'force-dynamic'
 
@@ -252,6 +253,7 @@ function RelanceRow({ lead, noShowBadge }: { lead: Lead; noShowBadge: boolean })
         <SourceTag source={lead.source} />
         {noShowBadge && <NoShow lead={lead} />}
         {lead.motif_relance && <span className="block text-xs text-gray-500 mt-0.5">{lead.motif_relance}</span>}
+        {lead.rdv_honore === true && <span className="block mt-0.5"><AideFinEssai /></span>}
       </td>
       <td className="px-4 py-3">
         {lead.telephone ? (
@@ -293,6 +295,7 @@ function RelanceCardMobile({ lead, noShowBadge }: { lead: Lead; noShowBadge: boo
           </Link>
           <SourceTag source={lead.source} />
           {noShowBadge && <NoShow lead={lead} />}
+          {lead.rdv_honore === true && <span className="block mt-0.5"><AideFinEssai /></span>}
           <p className="text-xs mt-0.5">
             <span className="text-gray-400">Dernier contact : </span>
             <DernierContact lead={lead} />

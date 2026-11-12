@@ -11,6 +11,7 @@ import { PREFIXE_PERTE } from '@/lib/supabase'
 import BilanResume from '@/components/BilanResume'
 import SourceTag from '@/components/SourceTag'
 import CopyButton from '@/components/CopyButton'
+import { AideFinEssai, ResultatEssai } from '@/components/FinEssai'
 
 export default function LeadDetailClient({ lead }: { lead: Lead }) {
   const router = useRouter()
@@ -65,6 +66,17 @@ export default function LeadDetailClient({ lead }: { lead: Lead }) {
       </div>
 
       <div className="space-y-4">
+        {lead.rdv_honore === true && !['Vendu', 'Perdu', 'Refus'].includes(lead.statut) && (
+          <Section title="Fin d'essai : proposer l'abonnement">
+            <div className="px-4 py-3 space-y-3">
+              <AideFinEssai ouvert />
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">Résultat :</span>
+                <ResultatEssai leadId={lead.id} onDone={() => router.refresh()} />
+              </div>
+            </div>
+          </Section>
+        )}
         {lead.diagnostic && (
           <Section title="Bilan Forme">
             <div className="px-4 py-3 text-sm"><BilanResume leadId={lead.id} fiche={lead.diagnostic} /></div>
