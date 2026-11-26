@@ -20,7 +20,7 @@ import { lireIdBilan, sessionValide, signerIdBilan, SESSION_COOKIE } from '@/lib
 export const dynamic = 'force-dynamic'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const SOURCES_CANAL = new Set(['wa', 'ig', 'story', 'bio', 'ads', 'fb', 'site', 'qr', 'sms'])
+const SOURCES_CANAL = new Set(['wa', 'ig', 'story', 'bio', 'ads', 'fb', 'site', 'qr', 'sms', 'google', 'google-post', 'google-produit'])
 
 const clean = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().replace(/\s+/g, ' ').slice(0, max) : '')
 
