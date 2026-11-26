@@ -4,7 +4,8 @@ import { bilanResume, type BilanFiche } from '@/lib/bilan'
 // Forme : son profil, son objectif, s'il a postulé à la séance d'essai + le
 // lien vers son bilan complet.
 
-const CANAL: Record<string, string> = { wa: 'WhatsApp', ig: 'Instagram', story: 'story', bio: 'bio Instagram', ads: 'pub', fb: 'Facebook', site: 'site', qr: 'QR code', sms: 'SMS', google: 'fiche Google', 'google-post': 'post Google', 'google-produit': 'tarif sur Google' }
+const CANAL: Record<string, string> = { wa: 'WhatsApp', ig: 'Instagram', story: 'story', bio: 'bio Instagram', ads: 'pub', fb: 'Facebook', site: 'site', qr: 'QR code', sms: 'SMS', google: 'fiche Google', 'google-post': 'post Google', 'google-produit': 'tarif sur Google',
+  'site-fiche': 'site, venu de la fiche Google', 'site-google': 'site, venu d’une recherche Google', 'site-fb': 'site, venu de Facebook', 'site-ig': 'site, venu d’Instagram', 'site-direct': 'site, accès direct', 'site-autre': 'site, venu d’un autre site' }
 
 export default function BilanResume({ leadId, fiche }: { leadId: string; fiche: BilanFiche | null }) {
   if (!fiche?.answers) return null
