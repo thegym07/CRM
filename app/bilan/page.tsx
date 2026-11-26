@@ -14,6 +14,7 @@ import {
   type Answers,
   type Track,
 } from '@/lib/bilan'
+import { signalerEtape } from '@/lib/entonnoirBilan'
 
 // =============================================================================
 // Bilan Forme THE GYM — page PUBLIQUE (WhatsApp, Instagram, story, bio, pubs).
@@ -166,6 +167,20 @@ function Bilan() {
     window.scrollTo({ top: 0 })
   }, [step])
 
+  // Entonnoir anonyme (compteurs par étape, sans cookie) : où les visiteurs abandonnent.
+  useEffect(() => {
+    if (step === 'intro') {
+      // Pas pour un bilan rouvert (?r=) ni pour le rechargement automatique après blocage
+      if (!resultId && !store.get(RETRY)) signalerEtape('ouverture', source)
+    } else if (typeof step === 'number') {
+      const q = questionsFor(answers)[step]
+      if (q) signalerEtape(q.id, source)
+    } else if (step === 'contact') {
+      signalerEtape('contact', source)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step])
+
   const questions = questionsFor(answers)
   const total = questions.length
   const next = (i: number, a: Answers) => setStep(i + 1 < questionsFor(a).length ? i + 1 : 'contact')
@@ -191,12 +206,16 @@ function Bilan() {
   const envoyer = async () => {
     setError(null)
     if (!contact.first_name.trim()) return setError('Indiquez votre prénom.')
-    if (member) return setStep('result')
+    if (member) {
+      signalerEtape('membre', source)
+      return setStep('result')
+    }
     if (contact.phone.replace(/\D/g, '').length < 9) return setError('Indiquez votre numéro de téléphone.')
     setSending(true)
     try {
       const body = await postBilan({ etape: 'bilan', ...contact, answers, source })
       store.del(RETRY)
+      signalerEtape('envoi', source)
       setLeadId(body.r ?? null)
       // Lien partageable du bilan (sans renvoyer le formulaire).
       const url = new URL(window.location.href)
@@ -679,6 +698,7 @@ function Essai({
     setSending(true)
     try {
       await postBilan({ etape: 'candidature', id: leadId, ...coord, answers, source })
+      signalerEtape('essai', source)
       onApplied()
     } catch (err) {
       setError(
