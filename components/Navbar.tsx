@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { AGENDA_ACTIF } from '@/lib/fonctionnalites'
 
 const topItems = [
   { href: '/', label: 'Dashboard', icon: '📊' },
@@ -15,8 +16,12 @@ const funnelItems = [
   { href: '/show-up', label: 'RDV & Relances', icon: '📅' },
 ]
 
+const agendaItem = { href: '/agenda', label: 'Agenda', icon: '🗓️' }
+const coachingsItem = { href: '/coachings', label: 'Coachings', icon: '💪' }
+
 const bottomItems = [
-  { href: '/agenda', label: 'Agenda', icon: '🗓️' },
+  ...(AGENDA_ACTIF ? [agendaItem] : []),
+  coachingsItem,
   { href: '/rapport', label: 'Rapport', icon: '📋' },
   { href: '/commissions', label: 'Commission Bonus', icon: '💶' },
   { href: '/rentabilite', label: 'Rentabilité', icon: '📈' },
@@ -28,9 +33,10 @@ const mobileMain = [
   { href: '/', label: 'Dashboard', icon: '📊' },
   { href: '/leads', label: 'Prospects', icon: '👥' },
   { href: '/show-up', label: 'RDV', icon: '📅' },
-  { href: '/agenda', label: 'Agenda', icon: '🗓️' },
+  coachingsItem,
 ]
 const mobilePlus = [
+  ...(AGENDA_ACTIF ? [agendaItem] : []),
   { href: '/rapport', label: 'Rapport', icon: '📋' },
   { href: '/commissions', label: 'Commission Bonus', icon: '💶' },
   { href: '/rentabilite', label: 'Rentabilité', icon: '📈' },

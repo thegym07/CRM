@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ACTIVITES, type Lead } from '@/lib/supabase'
 import { CreneauSelect } from '@/components/CreneauPicker'
+import { AGENDA_ACTIF } from '@/lib/fonctionnalites'
 
 type LeadFormProps = {
   lead?: Lead
@@ -32,9 +33,9 @@ export default function LeadForm({ lead, mode }: LeadFormProps) {
     date_rdv: lead?.date_rdv ? lead.date_rdv.slice(0, 16) : '',
     activite: lead?.activite ?? '',
   })
-  // Plateau muscu : réservation d'un créneau coach au lieu d'une date libre
+  // Plateau muscu : réservation d'un créneau coach au lieu d'une date libre (si l'agenda est actif)
   const [creneauId, setCreneauId] = useState('')
-  const plateauMuscu = form.activite === 'plateau muscu'
+  const plateauMuscu = AGENDA_ACTIF && form.activite === 'plateau muscu'
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target

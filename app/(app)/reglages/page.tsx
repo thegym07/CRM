@@ -1,12 +1,13 @@
 import { getReglages } from '@/lib/reglages'
 import { getCoaches } from '@/lib/agenda'
+import { AGENDA_ACTIF } from '@/lib/fonctionnalites'
 import { emailConfigure } from '@/lib/email'
 import { EmailProspects, EmailCoachs, AjouterContact } from './ReglagesClient'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ReglagesPage() {
-  const [reglages, coaches] = await Promise.all([getReglages(), getCoaches()])
+  const [reglages, coaches] = await Promise.all([getReglages(), AGENDA_ACTIF ? getCoaches() : Promise.resolve([])])
   const configure = emailConfigure()
 
   return (
@@ -26,10 +27,12 @@ export default async function ReglagesPage() {
       )}
 
       <EmailProspects initial={reglages.emailProspects} />
-      <EmailCoachs
-        initial={reglages.emailCoachRdv}
-        coaches={coaches.map(c => ({ id: c.id, nom: c.nom, couleur: c.couleur, email: c.email ?? '' }))}
-      />
+      {AGENDA_ACTIF && (
+        <EmailCoachs
+          initial={reglages.emailCoachRdv}
+          coaches={coaches.map(c => ({ id: c.id, nom: c.nom, couleur: c.couleur, email: c.email ?? '' }))}
+        />
+      )}
 
       <AjouterContact adresse={process.env.GMAIL_USER ?? 'thegymwk@gmail.com'} />
     </div>

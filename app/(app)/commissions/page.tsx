@@ -1,34 +1,15 @@
 import { getLeads } from '@/lib/db'
 import { getCommissions, type Commission } from '@/lib/commissions'
+import { getCoachings, COMMISSION_COACHING } from '@/lib/coachings'
+import { periodeDe, periodeActuelle, labelPeriode, bornesPeriode } from '@/lib/periodes'
 import Link from 'next/link'
 import CommissionDelete from './CommissionDelete'
 
 export const dynamic = 'force-dynamic'
 
-type SearchParams = { mois?: string }
-
 // Montant de référence affiché dans le sous-titre (chaque ligne garde son
 // propre montant figé en base).
 const COMMISSION_PAR_RDV = 10
-
-// Commission coach : séance plateau muscu accompagnée (présence Oui + coach assigné)
-const COMMISSION_COACH = 30
-
-// Clé "YYYY-MM" calculée en heure française (indépendante du fuseau serveur)
-const moisKey = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' }).slice(0, 7)
-const cleMois = moisKey
-
-// Date d'une séance coach = date du RDV (fallback : dernière mise à jour)
-import type { Lead } from '@/lib/supabase'
-const dateSeance = (l: Lead) => l.date_rdv ?? l.updated_at
-const cleMoisDe = (l: Lead) => moisKey(dateSeance(l))
-
-function moisLabel(key: string): string {
-  const [y, m] = key.split('-').map(Number)
-  const label = new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-  return label.charAt(0).toUpperCase() + label.slice(1)
-}
 
 const euros = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
@@ -40,37 +21,26 @@ const ISSUE_BADGE: Record<string, string> = {
   'RDV pris':   'bg-gray-100 text-gray-600',
 }
 
-export default async function CommissionsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const params = await searchParams
-  const [commissions, leads] = await Promise.all([getCommissions(), getLeads()])
+export default async function CommissionsPage() {
+  const [commissions, leads, coachingsLus] = await Promise.all([getCommissions(), getLeads(), getCoachings()])
+  const coachings = coachingsLus ?? {}
   const statutParLead = new Map(leads.map(l => [l.id, l.statut]))
 
-  // ── Commissions coachs : calculées en direct depuis les séances ──
-  const seances = leads.filter(l =>
-    l.activite === 'plateau muscu' && l.coach_assigne && l.rdv_honore === true
-  )
-  const moisDisponibles = Array.from(new Set(seances.map(s => cleMoisDe(s)))).sort().reverse()
-  const moisActuel = cleMois(new Date().toISOString())
-  const moisSel = params.mois && /^\d{4}-\d{2}$/.test(params.mois) ? params.mois : moisActuel
-  const seancesMois = seances
-    .filter(s => cleMoisDe(s) === moisSel)
-    .sort((a, b) => new Date(dateSeance(b)).getTime() - new Date(dateSeance(a)).getTime())
-  const parCoach = new Map<string, typeof seancesMois>()
-  for (const s of seancesMois) {
-    const nom = s.coach_assigne!
-    parCoach.set(nom, [...(parCoach.get(nom) ?? []), s])
-  }
-
-  // Regroupement par mois (date du RDV figée à la création de la commission)
-  const parMois = new Map<string, Commission[]>()
+  // Regroupement par période de paie (26 → 25), d'après la date du RDV figée à la création
+  const parPeriode = new Map<string, Commission[]>()
   for (const c of commissions) {
-    const key = moisKey(c.date_rdv)
-    parMois.set(key, [...(parMois.get(key) ?? []), c])
+    const key = periodeDe(c.date_rdv)
+    parPeriode.set(key, [...(parPeriode.get(key) ?? []), c])
   }
-  const moisCourant = moisKey(new Date().toISOString())
-  const duMois = (parMois.get(moisCourant) ?? [])
-  const historique = Array.from(parMois.keys()).sort().reverse().filter(k => k !== moisCourant)
-  const totalMois = duMois.reduce((s, c) => s + c.montant, 0)
+  const actuelle = periodeActuelle()
+  const duMois = parPeriode.get(actuelle) ?? []
+  const historique = Array.from(new Set([...parPeriode.keys(), ...Object.keys(coachings)]))
+    .filter(k => k < actuelle).sort().reverse()
+
+  const totalRdv = (rows: Commission[]) => rows.reduce((s, c) => s + c.montant, 0)
+  const nbCoachings = (p: string) => coachings[p] ?? 0
+  const coachingsMois = nbCoachings(actuelle)
+  const totalMois = totalRdv(duMois) + coachingsMois * COMMISSION_COACHING
 
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
@@ -79,20 +49,33 @@ export default async function CommissionsPage({ searchParams }: { searchParams: 
           💶 Commission Bonus
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          {COMMISSION_PAR_RDV} € par RDV où le prospect était présent — vente ou non.
+          {COMMISSION_PAR_RDV} € par RDV où le prospect était présent — vente ou non — et {COMMISSION_COACHING} € par coaching.
+          Chaque période s’arrête le 25 du mois (du 26 au 25).
           Les commissions sont figées : supprimer un prospect ailleurs ne les retire pas.
         </p>
       </div>
 
-      {/* Mois en cours */}
+      {coachingsLus === null && (
+        <div className="mb-4 rounded-xl border-2 border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          ⚠ Les coachings n’ont pas pu être lus : les totaux ci-dessous ne les comptent pas. Recharge la page.
+        </div>
+      )}
+
+      {/* Période en cours */}
       <div className="rounded-2xl border-2 border-[#F5C800] bg-white p-6 shadow-sm mb-8">
-        <p className="label-condensed mb-1">{moisLabel(moisCourant)} — mois en cours</p>
+        <p className="label-condensed mb-1">{labelPeriode(actuelle)} — période en cours</p>
+        <p className="text-xs text-gray-500 mb-2">{bornesPeriode(actuelle)}</p>
         <div className="flex items-end gap-3 flex-wrap">
           <p className="text-5xl font-bold text-gray-900" style={{ letterSpacing: '-0.03em' }}>
             {euros(totalMois)}
           </p>
           <p className="text-sm text-gray-500 pb-1.5">
-            {duMois.length} RDV présent{duMois.length !== 1 ? 's' : ''}
+            {duMois.length} RDV présent{duMois.length !== 1 ? 's' : ''} ({euros(totalRdv(duMois))})
+            {' · '}
+            <Link href="/coachings" className="underline hover:text-gray-900">
+              {coachingsMois} coaching{coachingsMois !== 1 ? 's' : ''}
+            </Link>
+            {' '}({euros(coachingsMois * COMMISSION_COACHING)})
           </p>
         </div>
 
@@ -129,37 +112,44 @@ export default async function CommissionsPage({ searchParams }: { searchParams: 
           </div>
         )}
         {duMois.length === 0 && (
-          <p className="mt-4 text-sm text-gray-400">Aucun RDV présent ce mois-ci pour l'instant.</p>
+          <p className="mt-4 text-sm text-gray-400">Aucun RDV présent sur cette période pour l’instant.</p>
         )}
+        <p className="mt-4 text-xs text-gray-500">
+          Coachings : à noter dans l’onglet <Link href="/coachings" className="underline hover:text-gray-900">💪 Coachings</Link>.
+        </p>
       </div>
 
       {/* Historique */}
       <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Historique</h2>
       {historique.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-          <p className="text-gray-400 text-sm">Pas encore d'historique — il se remplira mois après mois.</p>
+          <p className="text-gray-400 text-sm">Pas encore d’historique — il se remplira période après période.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-4 py-2.5 label-condensed">Mois</th>
+                <th className="text-left px-4 py-2.5 label-condensed">Période</th>
                 <th className="text-right px-4 py-2.5 label-condensed">RDV présents</th>
+                <th className="text-right px-4 py-2.5 label-condensed">Coachings</th>
                 <th className="text-right px-4 py-2.5 label-condensed">Commission</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {historique.map(key => {
-                const rows = parMois.get(key)!
+                const rows = parPeriode.get(key) ?? []
+                const nb = nbCoachings(key)
                 return (
                   <tr key={key} className="hover:bg-gray-50 align-top">
                     <td className="px-4 py-3">
                       <details>
                         <summary className="text-gray-900 font-medium cursor-pointer select-none">
-                          {moisLabel(key)} <span className="text-xs text-gray-400">(détail)</span>
+                          {labelPeriode(key)} <span className="text-xs text-gray-400">(détail)</span>
+                          <span className="block text-[11px] text-gray-400 font-normal">{bornesPeriode(key)}</span>
                         </summary>
                         <ul className="mt-2 space-y-1.5">
+                          {rows.length === 0 && <li className="text-xs text-gray-400">Aucun RDV présent.</li>}
                           {rows.map(c => {
                             const statut = c.lead_id ? statutParLead.get(c.lead_id) : undefined
                             return (
@@ -190,8 +180,9 @@ export default async function CommissionsPage({ searchParams }: { searchParams: 
                       </details>
                     </td>
                     <td className="px-4 py-3 text-right text-gray-700">{rows.length}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{nb}</td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                      {euros(rows.reduce((s, c) => s + c.montant, 0))}
+                      {euros(totalRdv(rows) + nb * COMMISSION_COACHING)}
                     </td>
                   </tr>
                 )
@@ -200,88 +191,6 @@ export default async function CommissionsPage({ searchParams }: { searchParams: 
           </table>
         </div>
       )}
-
-      {/* ══════════ Commissions coachs ══════════ */}
-      <div className="mt-12">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-          <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>
-            💪 Commissions coachs
-          </h2>
-          <a
-            href={`/api/export/coachs?mois=${moisSel}`}
-            className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-500"
-          >
-            ⬇ Export CSV
-          </a>
-        </div>
-        <p className="text-gray-500 text-sm mb-4">
-          {COMMISSION_COACH} € par séance plateau muscu accompagnée (présence Oui).
-        </p>
-
-        {/* Filtre par mois */}
-        <div className="flex gap-2 flex-wrap mb-4">
-          {Array.from(new Set([moisActuel, ...moisDisponibles])).sort().reverse().map(m => (
-            <Link key={m} href={`/commissions?mois=${m}`}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                m === moisSel
-                  ? 'bg-[#F5C800] text-black border-[#F5C800]'
-                  : 'border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-500 bg-white'
-              }`}>
-              {moisLabel(m)}
-            </Link>
-          ))}
-        </div>
-
-        {parCoach.size === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-            <p className="text-gray-400 text-sm">Aucune séance accompagnée ce mois-ci.</p>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left px-4 py-2.5 label-condensed">Coach</th>
-                  <th className="text-right px-4 py-2.5 label-condensed">Séances réalisées</th>
-                  <th className="text-right px-4 py-2.5 label-condensed">Montant dû</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {Array.from(parCoach.entries()).sort((a, b) => b[1].length - a[1].length).map(([coach, rows]) => (
-                  <tr key={coach} className="hover:bg-gray-50 align-top">
-                    <td className="px-4 py-3">
-                      <details>
-                        <summary className="font-medium text-gray-900 cursor-pointer select-none">
-                          {coach} <span className="text-xs text-gray-400">(détail)</span>
-                        </summary>
-                        <ul className="mt-2 space-y-1">
-                          {rows.map(s => (
-                            <li key={s.id} className="text-xs text-gray-500">
-                              {new Date(dateSeance(s)).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' })}
-                              {' — '}
-                              <Link href={`/leads/${s.id}`} className="hover:text-[#F5C800]">{s.nom}</Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </details>
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-700">{rows.length}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">{euros(rows.length * COMMISSION_COACH)}</td>
-                  </tr>
-                ))}
-                <tr className="bg-gray-50 border-t border-gray-200">
-                  <td className="px-4 py-3 font-bold text-gray-900">Total</td>
-                  <td className="px-4 py-3 text-right font-bold text-gray-900">{seancesMois.length}</td>
-                  <td className="px-4 py-3 text-right font-bold text-gray-900">{euros(seancesMois.length * COMMISSION_COACH)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className="text-[11px] text-gray-400 mt-2">
-          Calculé en direct : si une présence repasse à « Non », la séance est retirée automatiquement.
-        </p>
-      </div>
     </div>
   )
 }

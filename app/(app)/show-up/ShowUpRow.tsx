@@ -12,12 +12,13 @@ import PerduButton from '@/components/PerduButton'
 import SmsButton from '@/components/SmsButton'
 import { smsRdv } from '@/lib/sms'
 import { type Lead } from '@/lib/supabase'
+import { AGENDA_ACTIF } from '@/lib/fonctionnalites'
 import { AideFinEssai, ResultatEssai } from '@/components/FinEssai'
 import SourceTag from '@/components/SourceTag'
 
-// Plateau muscu sans date : la date se choisit parmi les dispos coachs
+// Plateau muscu sans date : la date se choisit parmi les dispos coachs (si l'agenda est actif)
 function DateCell({ lead }: { lead: Lead }) {
-  if (lead.activite === 'plateau muscu' && !lead.date_rdv) {
+  if (AGENDA_ACTIF && lead.activite === 'plateau muscu' && !lead.date_rdv) {
     return <CreneauInline leadId={lead.id} />
   }
   return <InlineDateTime leadId={lead.id} value={lead.date_rdv} />

@@ -1,5 +1,7 @@
 import { getLeads } from '@/lib/db'
 import { getCommissions } from '@/lib/commissions'
+import { getCoachings, COMMISSION_COACHING } from '@/lib/coachings'
+import { periodeDe, bornesPeriode } from '@/lib/periodes'
 import Link from 'next/link'
 import InlineSelect from '@/components/InlineSelect'
 import type { Lead } from '@/lib/supabase'
@@ -52,9 +54,11 @@ type SearchParams = { mois?: string }
 
 export default async function RentabilitePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams
-  const [leads, commissions] = await Promise.all([getLeads(), getCommissions()])
+  const [leads, commissions, coachingsLus] = await Promise.all([getLeads(), getCommissions(), getCoachings()])
+  const coachings = coachingsLus ?? {}
   const moisCourant = cleMois(new Date().toISOString())
-  const aujourdhui = new Date().getDate()
+  // Jour du mois à Paris (le serveur Vercel tourne en UTC)
+  const aujourdhui = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' }).slice(8, 10))
 
   // ── Liste des mois depuis le début d'activité ──
   const tousLesMois: string[] = []
@@ -88,14 +92,23 @@ export default async function RentabilitePage({ searchParams }: { searchParams: 
   }
 
   // ── Dépenses par mois ──
+  // Commissions = celles de la période de paie qui se termine le 25 de ce mois (du 26 au 25),
+  // payées avec ce mois : RDV présents (10 €) + coachings notés à la main (30 €).
   const comParMois = new Map<string, number>()
   for (const c of commissions) {
-    const key = cleMois(c.date_rdv)
+    const key = periodeDe(c.date_rdv)
     comParMois.set(key, (comParMois.get(key) ?? 0) + c.montant)
   }
   const depensesDe = (key: string) => {
     const jours = key === moisCourant ? aujourdhui : joursDansMois(key)
-    return { pub: jours * PUB_PAR_JOUR, salaire: SALAIRE_MENSUEL, com: comParMois.get(key) ?? 0 }
+    const nbCoachings = coachings[key] ?? 0
+    return {
+      pub: jours * PUB_PAR_JOUR,
+      salaire: SALAIRE_MENSUEL,
+      com: comParMois.get(key) ?? 0,
+      nbCoachings,
+      coachings: nbCoachings * COMMISSION_COACHING,
+    }
   }
 
   // ── Taux par mois (RDV pointés / ventes) ──
@@ -117,7 +130,7 @@ export default async function RentabilitePage({ searchParams }: { searchParams: 
   const joursSel = estCourant ? aujourdhui : joursDansMois(moisSel)
   const revM = revenus.get(moisSel) ?? 0
   const depM = depensesDe(moisSel)
-  const totalDepM = depM.pub + depM.salaire + depM.com
+  const totalDepM = depM.pub + depM.salaire + depM.com + depM.coachings
   const resultatM = revM - totalDepM
   const tauxM = tauxDe(moisSel)
 
@@ -128,9 +141,15 @@ export default async function RentabilitePage({ searchParams }: { searchParams: 
           📈 Rentabilité
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          Pub {PUB_PAR_JOUR} €/jour · Salaire {SALAIRE_MENSUEL} €/mois · Commissions incluses · Abonnements comptés en mensualités
+          Pub {PUB_PAR_JOUR} €/jour · Salaire {SALAIRE_MENSUEL} €/mois · Commissions et coachings inclus · Abonnements comptés en mensualités
         </p>
       </div>
+
+      {coachingsLus === null && (
+        <div className="mb-4 rounded-xl border-2 border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          ⚠ Les coachings n’ont pas pu être lus : les dépenses ci-dessous ne les comptent pas. Recharge la page.
+        </div>
+      )}
 
       {/* Ventes à qualifier */}
       {ventesAQualifier.length > 0 && (
@@ -180,8 +199,10 @@ export default async function RentabilitePage({ searchParams }: { searchParams: 
           <span className="font-semibold text-gray-900 text-right">−{euros(depM.pub)}</span>
           <span className="text-gray-500">Salaire commerciale</span>
           <span className="font-semibold text-gray-900 text-right">−{euros(depM.salaire)}</span>
-          <span className="text-gray-500">Commissions bonus</span>
+          <span className="text-gray-500">Commissions RDV ({bornesPeriode(moisSel)})</span>
           <span className="font-semibold text-gray-900 text-right">−{euros(depM.com)}</span>
+          <span className="text-gray-500">Coachings ({depM.nbCoachings} × {COMMISSION_COACHING} €)</span>
+          <span className="font-semibold text-gray-900 text-right">−{euros(depM.coachings)}</span>
         </div>
       </div>
 
@@ -217,7 +238,7 @@ export default async function RentabilitePage({ searchParams }: { searchParams: 
             {[...tousLesMois].reverse().map(key => {
               const rev = revenus.get(key) ?? 0
               const dep = depensesDe(key)
-              const totalDep = dep.pub + dep.salaire + dep.com
+              const totalDep = dep.pub + dep.salaire + dep.com + dep.coachings
               const res = rev - totalDep
               const t = tauxDe(key)
               const detail = detailMois.get(key) ?? []
@@ -260,7 +281,9 @@ export default async function RentabilitePage({ searchParams }: { searchParams: 
 
       <p className="text-xs text-gray-400 mt-3">
         Les abonnements 3/6/12 mois comptent leur mensualité chaque mois pendant la durée de l'engagement.
-        Les dépenses du mois en cours courent jusqu'à aujourd'hui.
+        Les dépenses du mois en cours courent jusqu'à aujourd'hui. Commissions et coachings : ceux de la période de paie qui se termine le 25 de ce mois
+        (du 26 du mois précédent au 25 ; mois civil jusqu'en octobre 2026, du 01 au 25 pour novembre 2026).
+        Ceux du 26 au 31 comptent donc dans le mois suivant.
       </p>
     </div>
   )

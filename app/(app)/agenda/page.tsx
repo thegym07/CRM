@@ -1,6 +1,8 @@
 import { getCoaches, getCreneaux, type Creneau } from '@/lib/agenda'
 import { syncTousLesCoachs } from '@/lib/icalImport'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { AGENDA_ACTIF } from '@/lib/fonctionnalites'
 import { AjouterDispo, SlotChip, GestionCoachs } from './AgendaClient'
 
 export const dynamic = 'force-dynamic'
@@ -25,6 +27,8 @@ const addJours = (d: Date, n: number) => {
 }
 
 export default async function AgendaPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  // Agenda mis de côté : l'onglet est remplacé par la saisie des coachings
+  if (!AGENDA_ACTIF) redirect('/coachings')
   const params = await searchParams
   const aujourdhui = jourFr(new Date())
   const lundi = lundiDe(params.s && /^\d{4}-\d{2}-\d{2}$/.test(params.s) ? params.s : aujourdhui)
